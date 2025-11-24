@@ -31,6 +31,7 @@ setup_level(level, LEVEL_WIDTH, LEVEL_HEIGHT)
 
 # Sprites
 LEVEL_TILES = {
+    0 : pygame.image.load("sprites/level_tiles/empty.png").convert_alpha(),
     1 : pygame.image.load("sprites/level_tiles/normal_brick.png").convert_alpha(),
     2 : pygame.image.load("sprites/level_tiles/dirty_brick.png").convert_alpha(),
     3 : pygame.image.load("sprites/level_tiles/NO_ACCESS.png").convert_alpha()
@@ -79,7 +80,7 @@ while running:
                              , (j * c_dimensions, i * c_dimensions + c_dimensions))
             if level[i][j] != 0:
                 # pygame.draw.rect(draw_dest, (75, 75, 75), (j * c_dimensions-_x, i * c_dimensions-_y, c_dimensions, c_dimensions))
-                curr_tile = LEVEL_TILES[current_sprite]
+                curr_tile = LEVEL_TILES[level[i][j]]
                 draw_dest.blit(curr_tile, curr_tile.get_rect(topleft=(j*c_dimensions, i*c_dimensions)))
 
     # Drawing the center
@@ -91,30 +92,49 @@ while running:
 
     # Level Drawing
     _x, _y = int(mx / settings.cell_dimension), int(my / settings.cell_dimension)
+
     # Performance and Tools
     if pygame.key.get_pressed()[pygame.K_TAB]:
         pygame.draw.rect(draw_dest, (255, 0, 0), (0, 0, 32, 4))
         pygame.draw.rect(draw_dest, (0, 255, 0), (0, 0, 32 * (clock.get_fps() / 60), 4))
-
         x = 0
         for tool_name, image in TOOLS.items():
-            draw_dest.blit(image, image.get_rect(topleft=(x * 16, 0)))
+            img_rect = image.get_rect(topleft=(x * 16, 0))
             x += 1
-
+            if img_rect.collidepoint(mx, my):
+                if pygame.mouse.get_pressed()[0]:
+                    tool_mode = tool_name
+                    pygame.draw.rect(draw_dest, (255, 0, 255), img_rect, width=1)
+                else:
+                    pygame.draw.rect(draw_dest, (255, 0, 255), img_rect)
+            draw_dest.blit(image, img_rect)
         SW = settings.WINDOW_WIDTH
-        for index, tile in LEVEL_TILES.items():
-            tile_rect = tile.get_rect(center=(SW - 16, (index + 1) * 16))
-            draw_dest.blit(tile, tile_rect)
 
+        for index, tile in LEVEL_TILES.items():
+            tx, ty = SW - 16, (index + 1) * 16
+            index_text = font.render(f"{index}", False, (255,255,255))
+            index_rect = index_text.get_rect(topleft=(tx-8, ty))
+
+            tile_rect = tile.get_rect(topleft=(tx, ty))
+            if tile_rect.collidepoint(mx, my):
+                if pygame.mouse.get_pressed()[0]:
+                    current_sprite = index
+                    pygame.draw.rect(draw_dest, (255, 0, 255), (tx-3, ty-3, 16,16), width=1)
+                else:
+                    pygame.draw.rect(draw_dest, (255, 0, 255), (tx-3, ty-3, 16,16))
+
+            draw_dest.blit(tile, tile_rect)
+            draw_dest.blit(index_text, index_rect)
     else:
         if tool_mode == "Pencil":
             if pygame.mouse.get_pressed()[0]:
-                level[_y][_x] = 1
+                level[_y][_x] = current_sprite
             elif pygame.mouse.get_pressed()[2]:
                 level[_y][_x] = 0
         elif tool_mode == "Bucket":
             if pygame.mouse.get_pressed()[0]:
-
+                utilityfuncs.flood_fill(_x, _y, level, current_sprite, level[_y][_x])
+                print("This is a bucket:", current_sprite)
 
     # Rendering on game
     game_screen.screen.blit(pygame.transform.scale(draw_dest, (game_screen.get_dimensions())), (0, 0))

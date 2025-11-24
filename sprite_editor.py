@@ -39,6 +39,7 @@ current_color = (75, 75, 75)
 # Tools
 sprite_tools = {
     "Pencil": pygame.image.load("sprites/Sprite_Editor/Tools/pencil.png"),
+    "Line": pygame.image.load("sprites/Sprite_Editor/Tools/line.png"),
     "Bucket": pygame.image.load("sprites/Sprite_Editor/Tools/bucket.png"),
     "Select": pygame.image.load("sprites/Sprite_Editor/Tools/select.png"),
     "Eraser": pygame.image.load("sprites/Sprite_Editor/Tools/eraser.png"),
@@ -46,11 +47,7 @@ sprite_tools = {
 current_mode = "Pencil"
 
 class select_tool:
-    start_x = None
-    start_y = None
-
-    end_x = None
-    end_y = None
+    select_coordinates:list[tuple[int, int]] = []
 
     selected_data:list[list[tuple[int, int, int, int]]] = []
 
@@ -179,22 +176,23 @@ while running:
 
         elif current_mode == "Select":
             if pygame.mouse.get_pressed()[0]:
-                # Starting out
-                if select_tool.start_x is None and select_tool.start_y is None:
-                    select_tool.start_x = _x
-                    select_tool.start_y = _y
-                elif select_tool.end_x is None and select_tool.end_y is None:
-                    if _x != select_tool.start_x and _y != select_tool.end_y:
-                        select_tool.end_x = _x
-                        select_tool.end_y = _y
-                # If both coordinates are fulfilled
-                else:
-                    if not (select_tool.start_x <= _x <= select_tool.end_x+1 and select_tool.start_y <= _y <= select_tool.end_y+1):
-                        # You clicked outside
-                        select_tool.start_x = select_tool.start_y = select_tool.end_x = select_tool.end_y = None
-            # Not None
-            if not (select_tool.start_x is None and select_tool.start_y is None and select_tool.end_x is None and select_tool.end_y is None):
-                pygame.draw.rect(draw_dest, (175, 0, 0), (select_tool.start_x*spr.cell_size, select_tool.start_y*spr.cell_size, spr.cell_size, spr.cell_size), width=1)
+                if len(select_tool.select_coordinates) < 2:
+                    # First coordinates
+                    if (_x, _y) not in select_tool.select_coordinates:
+                        select_tool.select_coordinates.append((_x, _y))
+                    start_x, start_y = select_tool.select_coordinates[0]
+                    pygame.draw.circle(draw_dest, (175, 0, 0), (start_x*spr.cell_size+spr.cell_size/2, start_y*spr.cell_size+spr.cell_size/2), 3)
+                # else:
+                elif len(select_tool.select_coordinates) == 2:
+                    if select_tool.select_coordinates[0] < select_tool.select_coordinates[1]:
+                        select_tool.select_coordinates.insert(0, select_tool.select_coordinates.pop(0))
+            else:
+                if len(select_tool.select_coordinates) == 2:
+                    dist_x = select_tool.select_coordinates[1][0] - select_tool.select_coordinates[0][0] + 1
+                    dist_y = select_tool.select_coordinates[1][1] - select_tool.select_coordinates[0][1] + 1
+                    start_x, start_y = select_tool.select_coordinates[0]
+                    pygame.draw.circle(draw_dest, (175, 0, 0), (start_x*spr.cell_size+spr.cell_size/2, start_y*spr.cell_size+spr.cell_size/2), 3)
+                    pygame.draw.rect(draw_dest, (175, 0, 0), (start_x*spr.cell_size, start_y*spr.cell_size, dist_x*spr.cell_size, dist_y*spr.cell_size), width=1)
 
         elif current_mode == "Bucket":
             if pygame.mouse.get_pressed()[0]:
@@ -203,6 +201,8 @@ while running:
         elif current_mode == "Eraser":
             if pygame.mouse.get_pressed()[0]:
                 resize_sprite(spr.sprite_dimensions[0], spr.sprite_dimensions[1])
+        # elif current_mode == "Line":
+
 
     # Selecting Color
     elif settings.WINDOW_WIDTH-palette_width*16 <= mx < settings.WINDOW_WIDTH and 0 <= my < palette_height*16:
@@ -230,6 +230,7 @@ while running:
             if pygame.mouse.get_pressed()[0]:
                 pygame.draw.rect(draw_dest, (0, 255, 0), (tx, ty, 16, 16))
                 current_mode = tool_name
+                select_tool.select_coordinates.clear()
             else:
                 pygame.draw.rect(draw_dest, (0, 255, 0), (tx, ty, 16, 16))
         draw_dest.blit(tool_sprite, tool_sprite.get_rect(topleft=(tx, ty)))
