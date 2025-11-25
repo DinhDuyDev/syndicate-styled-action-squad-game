@@ -2,3 +2,5 @@
 1 : sprites/level_tiles/normal_brick.png
 2 : sprites/level_tiles/dirty_brick.png
 3 : sprites/level_tiles/NO_ACCESS.png
+4 : sprites/level_tiles/concrete.png
+5 : sprites/level_tiles/shiny_brick.png
