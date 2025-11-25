@@ -1,0 +1,40 @@
+Last login: Tue Nov 25 09:25:03 on ttys001
+Yeety mcyeet
+-bash: export: `=': not a valid identifier
+-bash: export: `/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/usr/local/share/dotnet:~/.dotnet/tools:/opt/homebrew/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/usr/local/smlnj/bin': not a valid identifier
+
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+vl965-172-31-131-156:~ macbookpro$ ssh-keygen -t ed25519 -C "dinhduygiangvo@gmail.com"
+Generating public/private ed25519 key pair.
+Enter file in which to save the key (/Users/macbookpro/.ssh/id_ed25519): 
+Created directory '/Users/macbookpro/.ssh'.
+Enter passphrase for "/Users/macbookpro/.ssh/id_ed25519" (empty for no passphrase): 
+Enter same passphrase again: 
+Your identification has been saved in /Users/macbookpro/.ssh/id_ed25519
+Your public key has been saved in /Users/macbookpro/.ssh/id_ed25519.pub
+The key fingerprint is:
+SHA256:ZyAGc6LXgdC0gXLSnfw8/eJS1AY377ZGWt2Y35zeKJQ dinhduygiangvo@gmail.com
+The key's randomart image is:
++--[ED25519 256]--+
+| ..B*oo          |
+|o +.*O .. o      |
+| +. oo+..+ o     |
+|   . .+.o.o .    |
+|       oSoo. o + |
+|        oo. E + .|
+|       o . * . oo|
+|      . . . +  o=|
+|       .   . .o..|
++----[SHA256]-----+
+vl965-172-31-131-156:~ macbookpro$ eval "$(ssh-agent -s)"
+Agent pid 5988
+vl965-172-31-131-156:~ macbookpro$ open ~/.ssh/config
+The file /Users/macbookpro/.ssh/config does not exist.
+vl965-172-31-131-156:~ macbookpro$ touch ~/.ssh/config
+vl965-172-31-131-156:~ macbookpro$ open ~/.ssh/config
+vl965-172-31-131-156:~ macbookpro$ ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+Enter passphrase for /Users/macbookpro/.ssh/id_ed25519: 
+Identity added: /Users/macbookpro/.ssh/id_ed25519 (dinhduygiangvo@gmail.com)
+vl965-172-31-131-156:~ macbookpro$ open ~/.ssh/config
+vl965-172-31-131-156:~ macbookpro$ 
