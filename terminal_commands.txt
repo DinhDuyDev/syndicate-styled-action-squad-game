@@ -5,7 +5,7 @@
 4. git log      : shows all commits
 5. git fetch    : takes all the data from the remote project
 6. git push <remote> <branch>: pushes all your data to a remote branch
-
+7. git pull origin main: basically helps with any conflicts if you have a README file
 
 ####### SSH COMMANDS #######
 1. ssh-keygen -t ed25519 -C "your_email@example.com": creates a new ssh key
