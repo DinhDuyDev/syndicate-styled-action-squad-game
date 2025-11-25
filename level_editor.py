@@ -5,6 +5,7 @@ import camera
 import utilityfuncs
 import math
 from pathlib import Path
+import tiles
 
 pygame.init()
 pygame.font.init()
@@ -23,22 +24,28 @@ c_dimensions = settings.cell_dimension
 command = ""
 using_commands = False
 
-level = []
+class Level:
+    level = []
+
 def setup_level(lv, width, height):
+    lv.clear()
     for i in range(height):
         row = []
         for j in range(width):
             row.append(0)
         lv.append(row)
-setup_level(level, LEVEL_WIDTH, LEVEL_HEIGHT)
+setup_level(Level.level, LEVEL_WIDTH, LEVEL_HEIGHT)
+
+def draw_level(lv):
+    for i in range(len(lv)):
+        for j in range(len(lv[0])):
+            print(lv[i][j], end="")
+        print()
 
 # Sprites
-LEVEL_TILES = {
-    0 : pygame.image.load("sprites/level_tiles/empty.png").convert_alpha(),
-    1 : pygame.image.load("sprites/level_tiles/normal_brick.png").convert_alpha(),
-    2 : pygame.image.load("sprites/level_tiles/dirty_brick.png").convert_alpha(),
-    3 : pygame.image.load("sprites/level_tiles/NO_ACCESS.png").convert_alpha()
-}
+
+LEVEL_TILES = tiles.get_tiles()
+
 current_sprite = 1
 
 # Tools
@@ -59,24 +66,26 @@ class Entities:
 
 # Files
 def renew_level():
-    setup_level(level, LEVEL_WIDTH, LEVEL_HEIGHT)
+    setup_level(Level.level, LEVEL_WIDTH, LEVEL_HEIGHT)
 
 def save_level(lv:list[list[int]], pth):
     if ".dmf" in pth:
         with open(pth, 'w') as f:
+            f.write("") # Delete
             write_data = []
             for row in lv:
                 r = ""
                 for cell in row:
                     r += str(cell)
                 r += "\n"
+                print(r)
                 write_data.append(r)
-            write_data.append("P_SPAWN\n")
+            write_data.append("SPLIT\n")
             write_data.append(f"{Entities.player_spawn_point[0]} {Entities.player_spawn_point[1]}")
             f.writelines(write_data)
 
 def load_level(pth):
-    setup_level(level, LEVEL_WIDTH, LEVEL_HEIGHT)
+    setup_level(Level.level, LEVEL_WIDTH, LEVEL_HEIGHT)
     lvl_pth = Path(pth)
     if lvl_pth.exists():
         with open(pth, 'r') as f:
@@ -86,9 +95,16 @@ def load_level(pth):
                 cell_index = 0
                 l = level_data[row]
                 for cell in l:
-                    level[row_index][cell_index] = int(cell)
+                    Level.level[row][cell_index] = int(cell)
                     cell_index += 1
                 row_index += 1
+
+            row_index += 1
+            while level_data[row_index] == "SPLIT\n":
+                row_index += 1
+
+            player_loc = level_data[row_index].split()
+            Entities.player_spawn_point = (float(player_loc[0]), float(player_loc[1]))
 
 # Running
 while running:
@@ -113,7 +129,7 @@ while running:
                                 renew_level()
                         elif len(n) == 2:
                             if n[1].lower() in "save":
-                                save_level(level, n[0])
+                                save_level(Level.level, n[0])
                             elif n[1].lower() in "load":
                                 load_level(n[0])
                 elif event.key == pygame.K_BACKSPACE:
@@ -142,9 +158,9 @@ while running:
                              , ((j-c_x) * c_dimensions + c_dimensions, (i-c_y) * c_dimensions))
             pygame.draw.line(draw_dest, (75, 75, 75), ((j-c_x) * c_dimensions, (i-c_y) * c_dimensions)
                              , ((j-c_x) * c_dimensions, (i-c_y) * c_dimensions + c_dimensions))
-            if level[i][j] != 0:
+            if Level.level[i][j] != 0:
                 # pygame.draw.rect(draw_dest, (75, 75, 75), (j * c_dimensions-_x, i * c_dimensions-_y, c_dimensions, c_dimensions))
-                curr_tile = LEVEL_TILES[level[i][j]]
+                curr_tile = LEVEL_TILES[Level.level[i][j]]
                 draw_dest.blit(curr_tile, curr_tile.get_rect(topleft=(j*c_dimensions - _x, i*c_dimensions - _y)))
 
     # Drawing the center
@@ -197,12 +213,12 @@ while running:
     else:
         if tool_mode == "Pencil":
             if pygame.mouse.get_pressed()[0]:
-                level[_y][_x] = current_sprite
+                Level.level[_y][_x] = current_sprite
             elif pygame.mouse.get_pressed()[2]:
-                level[_y][_x] = 0
+                Level.level[_y][_x] = 0
         elif tool_mode == "Bucket":
             if pygame.mouse.get_pressed()[0]:
-                utilityfuncs.flood_fill(_x, _y, level, current_sprite, level[_y][_x])
+                utilityfuncs.flood_fill(_x, _y, Level.level, current_sprite, Level.level[_y][_x])
         elif tool_mode == "Player_Spawn": # setting the player's spawn:
             if pygame.mouse.get_pressed()[0]:
                 d = 0
@@ -210,12 +226,12 @@ while running:
                 for i in range(36):
                     __x, __y = (int((mx + math.cos(math.radians(d))*10 + c_x * c_dimensions)/c_dimensions),
                                 int((my - math.cos(math.radians(d))*10 + c_y * c_dimensions)/c_dimensions))
-                    if level[__y][__x] != 0:
+                    if Level.level[__y][__x] != 0:
                         can_place = False
 
                     __x, __y = (int((mx + math.cos(math.radians(d)) * 5 + c_x * c_dimensions) / c_dimensions),
                                 int((my - math.cos(math.radians(d)) * 5 + c_y * c_dimensions) / c_dimensions))
-                    if level[__y][__x] != 0:
+                    if Level.level[__y][__x] != 0:
                         can_place = False
 
                     d += 10
@@ -241,6 +257,3 @@ while running:
     game_screen.screen.blit(pygame.transform.scale(draw_dest, (game_screen.get_dimensions())), (0, 0))
     pygame.display.flip()
     clock.tick(60)
-
-
-# Tried out some Git

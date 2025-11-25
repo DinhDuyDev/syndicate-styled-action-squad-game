@@ -29,4 +29,3 @@ class Camera:
     def get_pos(self):
         return self.offset_x, self.offset_y
 
-gameCamera = Camera()

@@ -1,0 +1,4 @@
+0 : sprites/level_tiles/empty.png
+1 : sprites/level_tiles/normal_brick.png
+2 : sprites/level_tiles/dirty_brick.png
+3 : sprites/level_tiles/NO_ACCESS.png

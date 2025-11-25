@@ -12,9 +12,8 @@ import map
 
 class SquadMan:
     squad_list:list = []
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    def __init__(self, loc:tuple[float, float]):
+        self.x, self.y = loc
         self.hp = 100
         self.sprite = pygame.Surface((5, 5))
         self.sprite.fill((255, 255, 255))
