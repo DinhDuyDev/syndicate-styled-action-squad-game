@@ -8,6 +8,7 @@ import screen
 import settings
 import utilityfuncs
 import colors
+import math
 
 # Screen setup
 game_screen = screen.Screen(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
@@ -47,9 +48,17 @@ sprite_tools = {
 current_mode = "Pencil"
 
 class select_tool:
-    select_coordinates:list[tuple[int, int]] = []
-
+    select_coordinates:list[list[int]] = []
     selected_data:list[list[tuple[int, int, int, int]]] = []
+    has_selected = False
+    frames = 3
+    count = 0
+
+class line_tool:
+    start_x = None
+    start_y = None
+    end_x = None
+    end_y = None
 
 # Naming
 using_commands = False
@@ -178,21 +187,58 @@ while running:
             if pygame.mouse.get_pressed()[0]:
                 if len(select_tool.select_coordinates) < 2:
                     # First coordinates
-                    if (_x, _y) not in select_tool.select_coordinates:
-                        select_tool.select_coordinates.append((_x, _y))
+                    if [_x, _y] not in select_tool.select_coordinates:
+                        select_tool.select_coordinates.append([_x, _y])
                     start_x, start_y = select_tool.select_coordinates[0]
                     pygame.draw.circle(draw_dest, (175, 0, 0), (start_x*spr.cell_size+spr.cell_size/2, start_y*spr.cell_size+spr.cell_size/2), 3)
-                # else:
-                elif len(select_tool.select_coordinates) == 2:
-                    if select_tool.select_coordinates[0] < select_tool.select_coordinates[1]:
-                        select_tool.select_coordinates.insert(0, select_tool.select_coordinates.pop(0))
             else:
                 if len(select_tool.select_coordinates) == 2:
+                    if select_tool.select_coordinates[0][0] > select_tool.select_coordinates[1][0]:
+                        select_tool.select_coordinates[0][0], select_tool.select_coordinates[1][0] = select_tool.select_coordinates[1][0], select_tool.select_coordinates[0][0]
+                    if select_tool.select_coordinates[0][1] > select_tool.select_coordinates[1][1]:
+                        select_tool.select_coordinates[0][1], select_tool.select_coordinates[1][1] = select_tool.select_coordinates[1][1], select_tool.select_coordinates[0][1]
                     dist_x = select_tool.select_coordinates[1][0] - select_tool.select_coordinates[0][0] + 1
                     dist_y = select_tool.select_coordinates[1][1] - select_tool.select_coordinates[0][1] + 1
                     start_x, start_y = select_tool.select_coordinates[0]
                     pygame.draw.circle(draw_dest, (175, 0, 0), (start_x*spr.cell_size+spr.cell_size/2, start_y*spr.cell_size+spr.cell_size/2), 3)
                     pygame.draw.rect(draw_dest, (175, 0, 0), (start_x*spr.cell_size, start_y*spr.cell_size, dist_x*spr.cell_size, dist_y*spr.cell_size), width=1)
+
+                    if pygame.key.get_pressed()[pygame.K_x]:
+                        if len(select_tool.selected_data) == 0:
+                            select_tool.selected_data.clear()
+                        min_x, min_y = select_tool.select_coordinates[0][0], select_tool.select_coordinates[0][1]
+                        max_x, max_y = select_tool.select_coordinates[1][0], select_tool.select_coordinates[1][1]
+                        if 0 <= min_x <= spr.sprite_dimensions[0] and 0 <= max_x <= spr.sprite_dimensions[0] and 0 <= min_y <= spr.sprite_dimensions[1] and 0 <= max_y <= spr.sprite_dimensions[1]:
+                            for y in range(min_y, max_y+1):
+                                row = []
+                                for x in range(min_x, max_x+1):
+                                    row.append(spr.sprite_arr[y][x])
+                                    spr.sprite_arr[y][x] = (0, 0, 0, 0)
+                                select_tool.selected_data.append(row)
+
+                    elif pygame.key.get_pressed()[pygame.K_v]:
+                        min_x, min_y = select_tool.select_coordinates[0][0], select_tool.select_coordinates[0][1]
+                        max_x, max_y = select_tool.select_coordinates[1][0], select_tool.select_coordinates[1][1]
+                        if 0 <= min_x <= spr.sprite_dimensions[0] and 0 <= max_x <= spr.sprite_dimensions[
+                            0] and 0 <= min_y <= spr.sprite_dimensions[1] and 0 <= max_y <= spr.sprite_dimensions[1]:
+                            for y in range(min_y, max_y + 1):
+                                for x in range(min_x, max_x + 1):
+                                    spr.sprite_arr[y][x] = select_tool.selected_data[y-min_y][x-min_x]
+
+
+                    # Moving the selection tool
+                    if select_tool.count > select_tool.frames:
+                        dx = pygame.key.get_pressed()[pygame.K_RIGHT] - pygame.key.get_pressed()[pygame.K_LEFT]
+                        dy = pygame.key.get_pressed()[pygame.K_DOWN] - pygame.key.get_pressed()[pygame.K_UP]
+                        select_tool.select_coordinates[0][0] += dx
+                        select_tool.select_coordinates[0][1] += dy
+
+                        select_tool.select_coordinates[1][0] += dx
+                        select_tool.select_coordinates[1][1] += dy
+
+                        select_tool.count = 0
+                    else:
+                        select_tool.count += 1
 
         elif current_mode == "Bucket":
             if pygame.mouse.get_pressed()[0]:
@@ -201,8 +247,33 @@ while running:
         elif current_mode == "Eraser":
             if pygame.mouse.get_pressed()[0]:
                 resize_sprite(spr.sprite_dimensions[0], spr.sprite_dimensions[1])
-        # elif current_mode == "Line":
 
+        elif current_mode == "Line":
+            if line_tool.start_x is None and line_tool.start_y is None:
+                if pygame.mouse.get_pressed()[0]:
+                    line_tool.start_x, line_tool.start_y = _x, _y
+            elif line_tool.end_x is None and line_tool.end_y is None:
+                if pygame.mouse.get_pressed()[0]:
+                    if _x != line_tool.start_x or _y != line_tool.start_y:
+                        line_tool.end_x, line_tool.end_y = _x, _y
+            else:
+                if pygame.key.get_pressed()[pygame.K_RETURN]:
+                    move_dir = utilityfuncs.point_direction(line_tool.start_x, line_tool.start_y, line_tool.end_x, line_tool.end_y)
+                    while int(line_tool.start_x) != line_tool.end_x or int(line_tool.start_y) != line_tool.end_y:
+                        line_tool.start_x += math.cos(math.radians(move_dir))
+                        line_tool.start_y -= math.sin(math.radians(move_dir))
+                        spr.sprite_arr[int(line_tool.start_y)][int(line_tool.start_x)] = current_color
+                    line_tool.start_x = None
+                    line_tool.start_y = None
+                    line_tool.end_x = None
+                    line_tool.end_y = None
+
+            if not (line_tool.start_x is None and line_tool.start_y is None):
+                sx, sy = line_tool.start_x * spr.cell_size + spr.cell_size / 2, line_tool.start_y * spr.cell_size + spr.cell_size / 2
+                pygame.draw.circle(draw_dest, (175, 0, 0), (sx, sy), 3)
+            if not (line_tool.end_x is None and line_tool.end_y is None):
+                ex, ey = line_tool.end_x * spr.cell_size + spr.cell_size / 2, line_tool.end_y * spr.cell_size + spr.cell_size / 2
+                pygame.draw.circle(draw_dest, (175, 0, 0), (ex, ey), 3)
 
     # Selecting Color
     elif settings.WINDOW_WIDTH-palette_width*16 <= mx < settings.WINDOW_WIDTH and 0 <= my < palette_height*16:
@@ -231,6 +302,11 @@ while running:
                 pygame.draw.rect(draw_dest, (0, 255, 0), (tx, ty, 16, 16))
                 current_mode = tool_name
                 select_tool.select_coordinates.clear()
+                select_tool.selected_data.clear()
+                line_tool.start_x = None
+                line_tool.start_y = None
+                line_tool.end_x = None
+                line_tool.end_y = None
             else:
                 pygame.draw.rect(draw_dest, (0, 255, 0), (tx, ty, 16, 16))
         draw_dest.blit(tool_sprite, tool_sprite.get_rect(topleft=(tx, ty)))
@@ -255,6 +331,3 @@ while running:
     game_screen.screen.blit(pygame.transform.scale(draw_dest, (game_screen.get_dimensions())), (0, 0))
     pygame.display.flip()
     clock.tick(60)
-
-
-
