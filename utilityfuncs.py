@@ -4,7 +4,7 @@ import map
 import settings
 
 def mouse_xy_transformation(screen_interact:pygame.Surface, screen_base:pygame.Surface):
-    x, y = pygame.mouse.get_pos()[0] * (screen_interact.get_width() / screen_base.get_width()), pygame.mouse.get_pos()[1] * (screen_interact.get_height() / screen_base.get_height())
+    x, y = pygame.mouse.get_pos()[0] * (screen_interact.get_width() / screen_base.get_width()) / settings.zoom, pygame.mouse.get_pos()[1] * (screen_interact.get_height() / screen_base.get_height()) / settings.zoom
     return x, y
 
 def point_distance(x, y, a, b):

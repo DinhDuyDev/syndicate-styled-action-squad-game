@@ -8,6 +8,7 @@ import player as p
 import tiles
 import utilityfuncs
 import camera
+import decorations
 
 pygame.init()
 pygame.font.init()
@@ -32,11 +33,13 @@ man4 = p.SquadMan(spawn_xy)
 
 # Camera
 gameCamera = camera.Camera()
-gameCamera.offset_x = int((spawn_xy[0]-settings.WINDOW_WIDTH/2)/settings.cell_dimension)
-gameCamera.offset_y = int((spawn_xy[1]-settings.WINDOW_HEIGHT/2)/settings.cell_dimension)
+gameCamera.offset_x = int((spawn_xy[0]-settings.WINDOW_WIDTH/(2*settings.zoom))/settings.cell_dimension)
+gameCamera.offset_y = int((spawn_xy[1]-settings.WINDOW_HEIGHT/(2*settings.zoom))/settings.cell_dimension)
 
 # Game Tiles
 LEVEL_TILES = tiles.get_tiles()
+
+crate_1 = decorations.Crate((160, 90), True)
 
 while running:
     c_x, c_y = gameCamera.get_pos()
@@ -53,7 +56,6 @@ while running:
                 _y = c_y * settings.cell_dimension
                 if loaded_map[int(my/settings.cell_dimension)+c_y][int(mx/settings.cell_dimension)+c_x] == 0:
                     p.move_squad(mx+_x, my+_y, loaded_map)
-
 
     # Camera
     gameCamera.action()
@@ -103,10 +105,14 @@ while running:
         pygame.draw.rect(draw_dest, (255, 0, 0), (0, 0, 32, 4))
         pygame.draw.rect(draw_dest, (0, 255, 0), (0, 0, 32 * (clock.get_fps()/60), 4))
 
+    # Test drawings
+    crate_1.render(draw_dest, crate_1.xy()[0], crate_1.xy()[1])
 
-    game_screen.screen.blit(pygame.transform.scale(draw_dest, (game_screen.get_dimensions())), (0, 0))
+    # Resizing Screem
+    game_screen.screen.blit(pygame.transform.scale_by(pygame.transform.scale(draw_dest, game_screen.get_dimensions()), settings.zoom), (0, 0))
 
     pygame.display.flip()
     clock.tick(60)
 
 map.print_map(loaded_map)
+print(pygame.display.Info())

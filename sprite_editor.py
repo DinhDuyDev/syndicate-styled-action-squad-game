@@ -18,6 +18,8 @@ clock = pygame.time.Clock()
 
 font = pygame.font.SysFont("Arial", 10)
 
+settings.zoom = 1
+
 # Sprite setup
 hor_space = 320
 ver_space = 320

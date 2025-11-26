@@ -17,8 +17,8 @@ class Camera:
         dy = (keys[pygame.K_s] or keys[pygame.K_DOWN]) - (keys[pygame.K_w] or keys[pygame.K_DOWN])
 
         if self.count > self.frames:
-            self.offset_x = utilityfuncs.clamp(self.offset_x+dx, 0, max_hor-settings.hor_cells/2)
-            self.offset_y = utilityfuncs.clamp(self.offset_y+dy, 0, max_ver-settings.ver_cells/2)
+            self.offset_x = utilityfuncs.clamp(self.offset_x+dx, 0, max_hor-settings.hor_cells/(2*settings.zoom))
+            self.offset_y = utilityfuncs.clamp(self.offset_y+dy, 0, max_ver-settings.ver_cells/(2*settings.zoom))
             self.count = 0
         self.count += 1
 

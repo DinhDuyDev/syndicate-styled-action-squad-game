@@ -22,6 +22,9 @@ class Sprite:
     def set_image_index(self, i:int):
         self.image_index = int(i)
 
+    def get_image_at(self, i:int):
+        return self.images[i]
+
     def __copy__(self):
         return Sprite(self.image_links)
 

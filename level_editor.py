@@ -16,6 +16,7 @@ draw_dest = game_screen.screen.copy()
 running = True
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("Arial", 10)
+settings.zoom = 1
 
 # Level Setup
 LEVEL_WIDTH = settings.hor_cells

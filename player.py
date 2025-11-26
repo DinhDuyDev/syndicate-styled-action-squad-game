@@ -6,8 +6,6 @@ import pathfind
 import settings
 import utilityfuncs
 import Sprites
-import random
-import map
 
 
 class SquadMan:
