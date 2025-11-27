@@ -1,14 +1,19 @@
 import settings
+from pathlib import Path
 class Level:
-    def __init__(self, map_matrix:list[list[int]], spawn_x, spawn_y):
+    def __init__(self, map_matrix:list[list[int]], spawn_x, spawn_y, miscellaneous=""):
         self.map_matrix = map_matrix
         self.spawn_loc:tuple[float, float] = spawn_x, spawn_y
+        self.miscellaneous = [objs for objs in miscellaneous.split("//")]
 
     def get_level_matrix(self):
         return self.map_matrix
 
     def get_spawn_point(self):
         return self.spawn_loc
+
+    def all_miscellaneous_objects(self):
+        return self.miscellaneous
 
 class Map:
     def __init__(self):
@@ -32,27 +37,21 @@ def print_map(ls:list[list[int]]):
     print("]")
 
 def load_level(game_map_object:Map, file_path):
-    with open(file_path, "r") as f:
-        geometry = []
-        map_list = [l.strip() for l in f]
-        # print(map_list)
-        # print(len(map_list))
-        row_index = 0
-        for i in range(settings.ver_cells):
-            row_data = map_list[i]
-            row_ls = []
-            for j in range(settings.hor_cells):
-                row_ls.append(int(row_data[j]))
-            geometry.append(row_ls)
-            row_index += 1
+    file_path = Path(file_path)
+    if file_path.exists():
+        with open(file_path, "r") as f:
+            geometry = []
+            load_data = [l.strip() for l in f]
+            for i in range(settings.ver_cells):
+                row_ls = []
+                for j in range(settings.hor_cells):
+                    row_ls.append(int(load_data[0][i*settings.hor_cells+j]))
+                geometry.append(row_ls)
 
-        # print(row_index)
-        row_index += 1
-        while map_list[row_index] == "SPLIT\n":
-            row_index += 1
         # Player location
-        location = map_list[row_index].split()
-        new_map = Level(geometry, float(location[0]), float(location[1]))
+        location = load_data[1].split()
+        miscellaneous_objects = load_data[2]
+        new_map = Level(geometry, float(location[0]), float(location[1]), miscellaneous=miscellaneous_objects)
         game_map_object.add_level(new_map)
 
 GameMap = Map()

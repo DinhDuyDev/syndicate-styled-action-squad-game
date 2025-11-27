@@ -6,6 +6,9 @@ import utilityfuncs
 import math
 from pathlib import Path
 import tiles
+import decorations
+import copy
+import misc_objs_gen
 
 pygame.init()
 pygame.font.init()
@@ -44,7 +47,6 @@ def draw_level(lv):
         print()
 
 # Sprites
-
 LEVEL_TILES = tiles.get_tiles()
 
 current_sprite = 1
@@ -54,12 +56,18 @@ TOOLS = {
     "Pencil" : pygame.image.load("sprites/Level Editor/pencil.png").convert_alpha(),
     "Bucket": pygame.image.load("sprites/Level Editor/bucket.png").convert_alpha(),
     "Player_Spawn": pygame.image.load("sprites/Level Editor/player_spawn.png").convert_alpha(),
+    "Misc": pygame.image.load("sprites/Level Editor/miscellaneous.png").convert_alpha()
 }
 tool_mode = "Pencil"
 
+# Miscellaneous Objects (AKA decorators)
+MISC_OBJECTS = misc_objs_gen.misc_objects_generator()
+selected_object = "NormalCrate"
+mouse_held_down = False
+misc_objs:list[decorations.all_decoration_types] = []
+
 # Camera
 CameraView = camera.Camera()
-CameraView.frames = 3
 
 # Entities
 class Entities:
@@ -72,17 +80,25 @@ def renew_level():
 def save_level(lv:list[list[int]], pth):
     if ".dmf" in pth:
         with open(pth, 'w') as f:
-            f.write("") # Delete
+            f.write("") # Delete everything inside the files
             write_data = []
+            level_data = ""
             for row in lv:
-                r = ""
                 for cell in row:
-                    r += str(cell)
-                r += "\n"
-                print(r)
-                write_data.append(r)
-            write_data.append("SPLIT\n")
-            write_data.append(f"{Entities.player_spawn_point[0]} {Entities.player_spawn_point[1]}")
+                    level_data += str(cell)
+            level_data += "\n"
+            write_data.append(level_data)
+            write_data.append(f"{Entities.player_spawn_point[0]} {Entities.player_spawn_point[1]}\n")
+
+            # Decors
+            save_objs = ""
+            for i in range(len(misc_objs)):
+                obj = misc_objs[i]
+                if i < len(misc_objs)-1:
+                    save_objs += repr(obj) + "//"
+                else:
+                    save_objs += repr(obj)
+            write_data.append(f"{save_objs}")
             f.writelines(write_data)
 
 def load_level(pth):
@@ -90,22 +106,20 @@ def load_level(pth):
     lvl_pth = Path(pth)
     if lvl_pth.exists():
         with open(pth, 'r') as f:
-            row_index = 0
-            level_data = [l.strip() for l in f]
+            # Format
+            # 0: level data
+            # 1: Player spawn coordinates
+            load_data = [l.strip() for l in f]
             for row in range(LEVEL_HEIGHT):
-                cell_index = 0
-                l = level_data[row]
-                for cell in l:
-                    Level.level[row][cell_index] = int(cell)
-                    cell_index += 1
-                row_index += 1
+                for cell in range(LEVEL_WIDTH):
+                    Level.level[row][cell] = int(load_data[0][row*LEVEL_WIDTH+cell])
 
-            row_index += 1
-            while level_data[row_index] == "SPLIT\n":
-                row_index += 1
-
-            player_loc = level_data[row_index].split()
+            player_loc = load_data[1].split()
             Entities.player_spawn_point = (float(player_loc[0]), float(player_loc[1]))
+
+            all_miscellaneous = load_data[2].split("//")
+            for misc_o in all_miscellaneous:
+                misc_objs.append(misc_objs_gen.get_miscellaneous_objects(misc_o))
 
 # Running
 while running:
@@ -170,7 +184,6 @@ while running:
     pygame.draw.line(draw_dest, (255, 0, 0), (settings.WINDOW_WIDTH - _x - 1, settings.WINDOW_HEIGHT - w - _y - 1),
                      (settings.WINDOW_WIDTH - _x - 1, settings.WINDOW_HEIGHT + w - _y - 1), 2)
 
-
     # Level Drawing
     _x, _y = int(mx / settings.cell_dimension) + c_x, int(my / settings.cell_dimension) + c_y
 
@@ -193,24 +206,44 @@ while running:
             draw_dest.blit(image, img_rect)
         SW = settings.WINDOW_WIDTH
 
-        for index, tile in LEVEL_TILES.items():
-            tx, ty = SW - 16, (index + 1) * 16
-            index_text = font.render(f"{index}", False, (255,255,255))
-            index_rect = index_text.get_rect(topleft=(tx-8, ty))
-            tile_rect = tile.get_rect(topleft=(tx, ty))
+        if tool_mode != "Misc":
+            for index, tile in LEVEL_TILES.items():
+                tx, ty = SW - 16, (index + 1) * 16
+                index_text = font.render(f"{index}", False, (255,255,255))
+                index_rect = index_text.get_rect(topleft=(tx-8, ty))
+                tile_rect = tile.get_rect(topleft=(tx, ty))
 
-            if index == current_sprite:
-                pygame.draw.rect(draw_dest, (0, 255, 0), (tx - 3, ty - 3, 16, 16))
+                if index == current_sprite:
+                    pygame.draw.rect(draw_dest, (0, 255, 0), (tx - 3, ty - 3, 16, 16))
 
-            if tile_rect.collidepoint(mx, my):
-                if pygame.mouse.get_pressed()[0]:
-                    current_sprite = index
-                    pygame.draw.rect(draw_dest, (255, 0, 255), (tx-3, ty-3, 16,16), width=1)
-                else:
-                    pygame.draw.rect(draw_dest, (255, 0, 255), (tx-3, ty-3, 16,16))
+                if tile_rect.collidepoint(mx, my):
+                    if pygame.mouse.get_pressed()[0]:
+                        current_sprite = index
+                        pygame.draw.rect(draw_dest, (255, 0, 255), (tx-3, ty-3, 16,16), width=1)
+                    else:
+                        pygame.draw.rect(draw_dest, (255, 0, 255), (tx-3, ty-3, 16,16))
 
-            draw_dest.blit(tile, tile_rect)
-            draw_dest.blit(index_text, index_rect)
+                draw_dest.blit(tile, tile_rect)
+                draw_dest.blit(index_text, index_rect)
+        else:
+            index = 0
+            for key, obj in MISC_OBJECTS.items():
+                tx, ty = SW - 16, (index + 1) * 16
+                obj_spr  = obj.sprite.get_current_image()
+                obj_rect = obj_spr.get_rect(topleft=(tx, ty))
+
+                if key == selected_object:
+                    pygame.draw.rect(draw_dest, (0, 255, 0), (tx - 3, ty - 3, 16, 16))
+
+                if obj_rect.collidepoint(mx, my):
+                    if pygame.mouse.get_pressed()[0]:
+                        selected_object = key
+                        pygame.draw.rect(draw_dest, (255, 0, 255), (tx-3, ty-3, 16,16), width=1)
+                    else:
+                        pygame.draw.rect(draw_dest, (255, 0, 255), (tx-3, ty-3, 16,16))
+
+                draw_dest.blit(obj_spr, obj_rect)
+                index += 1
     else:
         if tool_mode == "Pencil":
             if pygame.mouse.get_pressed()[0]:
@@ -234,15 +267,42 @@ while running:
                                 int((my - math.cos(math.radians(d)) * 5 + c_y * c_dimensions) / c_dimensions))
                     if Level.level[__y][__x] != 0:
                         can_place = False
-
                     d += 10
                 if can_place:
                     Entities.player_spawn_point = (mx + c_x * c_dimensions, my + c_y * c_dimensions)
+        elif tool_mode == "Misc":
+            _x = c_x * c_dimensions
+            _y = c_y * c_dimensions
+            if not pygame.mouse.get_pressed()[0]:
+                mouse_held_down =  False
 
+            # I don't have a trackpad right now so I'm just going to put this here first
+            if pygame.mouse.get_pressed()[2]:
+                for o in misc_objs:
+                    o_rect = o.sprite.get_current_image().get_rect(center=(o.xy()[0], o.xy()[1]))
+                    spawn_x, spawn_y = mx + _x, my + _y
+                    if o_rect.collidepoint(spawn_x, spawn_y):
+                        misc_objs.remove(o)
+
+            if pygame.mouse.get_pressed()[0] and not mouse_held_down:
+                spawn_x, spawn_y = mx + _x, my + _y
+                new_object = copy.copy(MISC_OBJECTS[selected_object])
+                new_object.repr_name = selected_object
+                new_object.set_xy((spawn_x, spawn_y))
+                misc_objs.append(new_object)
+                mouse_held_down = True
+
+    # Spawn Point
     if Entities.player_spawn_point != (None, None):
         sp = Entities.player_spawn_point
         pygame.draw.circle(draw_dest, (255, 165, 0), (sp[0]-c_x*c_dimensions, sp[1]-c_y*c_dimensions), 2)
         pygame.draw.circle(draw_dest, (255, 0, 0), (sp[0]-c_x*c_dimensions, sp[1]-c_y*c_dimensions), 10, width=1)
+
+    # For decorative objects
+    _x = c_x * c_dimensions
+    _y = c_y * c_dimensions
+    for o in misc_objs:
+        o.render(draw_dest, o.xy()[0]-_x, o.xy()[1]-_y)
 
     # Commands
     y_name = 330
@@ -258,3 +318,5 @@ while running:
     game_screen.screen.blit(pygame.transform.scale(draw_dest, (game_screen.get_dimensions())), (0, 0))
     pygame.display.flip()
     clock.tick(60)
+
+print(misc_objs)

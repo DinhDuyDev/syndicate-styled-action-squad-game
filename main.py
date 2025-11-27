@@ -1,5 +1,7 @@
 # Importing all the library in
 import pygame
+
+import decorations
 import map
 import player
 import screen
@@ -8,8 +10,7 @@ import player as p
 import tiles
 import utilityfuncs
 import camera
-import decorations
-
+import misc_objs_gen
 pygame.init()
 pygame.font.init()
 
@@ -23,9 +24,17 @@ font = pygame.font.SysFont("Arial", 10)
 # Map
 new_map = False
 center_scope = True
-loaded_map:list[list[int]] = [[0 for x in range(settings.hor_cells)] for y in range(settings.ver_cells)] if new_map else map.GameMap.get_map().get_level_matrix()
-current_map = map.GameMap.get_map()
-spawn_xy = current_map.get_spawn_point()
+class LoadedScene:
+    loaded_map:list[list[int]] = [[0 for x in range(settings.hor_cells)] for y in range(settings.ver_cells)] if new_map else map.GameMap.get_map().get_level_matrix()
+    current_map = map.GameMap.get_map()
+    # Game Miscellaneous Objects
+    loaded_miscellaneous = current_map.all_miscellaneous_objects()
+    all_miscellaneous_objects: list[decorations.all_decoration_types] = []
+    for x in loaded_miscellaneous:
+        all_miscellaneous_objects.append(misc_objs_gen.get_miscellaneous_objects(x))
+
+spawn_xy = LoadedScene.current_map.get_spawn_point()
+
 man1 = p.SquadMan(spawn_xy)
 man2 = p.SquadMan(spawn_xy)
 man3 = p.SquadMan(spawn_xy)
@@ -39,7 +48,7 @@ gameCamera.offset_y = int((spawn_xy[1]-settings.WINDOW_HEIGHT/(2*settings.zoom))
 # Game Tiles
 LEVEL_TILES = tiles.get_tiles()
 
-crate_1 = decorations.Crate((160, 90), True)
+
 
 while running:
     c_x, c_y = gameCamera.get_pos()
@@ -54,8 +63,8 @@ while running:
             if pygame.mouse.get_pressed()[0]:
                 _x = c_x * settings.cell_dimension
                 _y = c_y * settings.cell_dimension
-                if loaded_map[int(my/settings.cell_dimension)+c_y][int(mx/settings.cell_dimension)+c_x] == 0:
-                    p.move_squad(mx+_x, my+_y, loaded_map)
+                if LoadedScene.loaded_map[int(my/settings.cell_dimension)+c_y][int(mx/settings.cell_dimension)+c_x] == 0:
+                    p.move_squad(mx+_x, my+_y, LoadedScene.loaded_map)
 
     # Camera
     gameCamera.action()
@@ -71,14 +80,20 @@ while running:
             # pygame.draw.line(draw_dest, (75, 75, 75),
             #                  (x * settings.cell_dimension, y * settings.cell_dimension),
             #                  (x * settings.cell_dimension, y * settings.cell_dimension + settings.cell_dimension))
-            if loaded_map[y][x] != 0 and loaded_map[y][x] != 3:
+            if LoadedScene.loaded_map[y][x] != 0 and LoadedScene.loaded_map[y][x] != 3:
                 _x = x*settings.cell_dimension - c_x * settings.cell_dimension
                 _y = y*settings.cell_dimension - c_y * settings.cell_dimension
                 # pygame.draw.rect(draw_dest, (75, 75, 75), (_x, _y
                 #                                            , settings.cell_dimension, settings.cell_dimension))
-                tile_spr = LEVEL_TILES[loaded_map[y][x]]
+                tile_spr = LEVEL_TILES[LoadedScene.loaded_map[y][x]]
                 tile_rect = tile_spr.get_rect(topleft=(_x, _y))
                 draw_dest.blit(tile_spr, tile_rect)
+
+    # Miscellaneous Objects
+    for msc_objs in LoadedScene.all_miscellaneous_objects:
+        _x = c_x * settings.cell_dimension
+        _y = c_y * settings.cell_dimension
+        msc_objs.render(draw_dest, msc_objs.xy()[0]-_x, msc_objs.xy()[1]-_y)
 
     # Squad
     for sq in player.SquadMan.squad_list:
@@ -88,7 +103,7 @@ while running:
 
         text_surf = font.render(str(player.SquadMan.squad_list.index(sq)), False, (255, 0, 0))
         text_rect = text_surf.get_rect(center=(sq.x-_x, sq.y-_y))
-        sq.action(loaded_map)
+        sq.action(LoadedScene.loaded_map)
 
     # Center
     if center_scope:
@@ -105,14 +120,11 @@ while running:
         pygame.draw.rect(draw_dest, (255, 0, 0), (0, 0, 32, 4))
         pygame.draw.rect(draw_dest, (0, 255, 0), (0, 0, 32 * (clock.get_fps()/60), 4))
 
-    # Test drawings
-    crate_1.render(draw_dest, crate_1.xy()[0], crate_1.xy()[1])
-
     # Resizing Screem
     game_screen.screen.blit(pygame.transform.scale_by(pygame.transform.scale(draw_dest, game_screen.get_dimensions()), settings.zoom), (0, 0))
 
     pygame.display.flip()
     clock.tick(60)
 
-map.print_map(loaded_map)
+map.print_map(LoadedScene.loaded_map)
 print(pygame.display.Info())
