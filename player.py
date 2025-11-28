@@ -53,8 +53,8 @@ class SquadMan:
         if len(self.move_path) == 0:
             if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 5:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, self.dest_x, self.dest_y)
-                self.x += math.cos(math.radians(dir_))
-                self.y -= math.sin(math.radians(dir_))
+                self.x += math.cos(math.radians(dir_)) * 0.5
+                self.y -= math.sin(math.radians(dir_)) * 0.5
 
             if utilityfuncs.point_distance(self.x, self.y, self.dest_x, self.dest_y) < 1:
                 self.x, self.y = self.dest_x, self.dest_y
@@ -68,14 +68,14 @@ class SquadMan:
             if utilityfuncs.point_distance(self.x, self.y, x, y) > 5:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, x, y)
                 self.sprite.set_image_index(dir_//45)
-                self.x += math.cos(math.radians(dir_))
-                self.y -= math.sin(math.radians(dir_))
+                self.x += math.cos(math.radians(dir_)) * 0.5
+                self.y -= math.sin(math.radians(dir_)) * 0.5
             else:
                 m[self.move_path[0][1]][self.move_path[0][0]] = 0
                 self.move_path.pop(0)
 
             self.leg_sprite.run_sprite()
-            self.leg_sprite.set_image_speed(10/30)
+            self.leg_sprite.set_image_speed(5/30)
             if self.leg_sprite.image_index > 2:
                 self.leg_sprite.image_index = 0
 
