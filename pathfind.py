@@ -37,7 +37,7 @@ def pathfind(x, y, x1, y1, mat):
     matrix_width = len(mat[0])
     matrix_height = len(mat)
 
-    print(matrix_width, matrix_height, ":", x, y)
+    # print(matrix_width, matrix_height, ":", x, y)
     nodes_matrix:list[list[Node]] = []
 
     for i in range(matrix_height):

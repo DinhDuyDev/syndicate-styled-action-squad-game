@@ -22,7 +22,7 @@ class Crate:
                 ("sprites/crate_spr/crate_normal_top.png" if not destroyed else "sprites/crate_spr/crate_normal_top_broken.png")
                 if not is_wep_crate else
                 ("sprites/crate_spr/crate_weapons_top.png" if not destroyed else "sprites/crate_spr/crate_weapons_broken_top.png"),
-                "sprites/crate_spr/crate_body.png" if not destroyed else "sprites/crate_spr/crate_body_broken.png"
+                "sprites/crate_spr/crate_body.png"
             )
         )
         self.repr_name = ""
@@ -59,6 +59,15 @@ class Crate:
     def __repr__(self):
         return f"{self.repr_name}->({self.x}, {self.y})"
 
+    def __lt__(self, other):
+        return self.y < other.y
+
+    def __gt__(self, other):
+        return self.y > other.y
+
+    def __eq__(self, other):
+        return self.y == other.y
+
 class Barrel:
     def __init__(self, loc:tuple[int, int], destroyed=False):
         self.x, self.y = loc
@@ -66,12 +75,13 @@ class Barrel:
         self.sprite = Sprites.Sprite(
             (
                 # Okay
-                "sprites/barrel_spr/barrel_normal.png" if not destroyed else "sprites/barrel_spr/barrel_broken.png",
-                "sprites/barrel_spr/barrel_normal.png" if not destroyed else "sprites/barrel_spr/barrel_broken.png"
+                "sprites/barrel_spr/barrel_top.png" if not destroyed else "sprites/barrel_spr/barrel_top_broken.png",
+                "sprites/barrel_spr/barrel_body.png"
             )
         )
         self.repr_name = ""
         self.destroyed = destroyed
+        self.angle = random.randint(0, 360)
 
     def set_xy(self, loc:tuple[float, float]):
         self.x, self.y = loc
@@ -80,10 +90,22 @@ class Barrel:
         return self.x, self.y
 
     def render(self, dest:pygame.Surface, x, y):
-        self_spr = self.sprite.get_image_at(0) #if not self.destroyed else self.sprite.get_image_at(2)
+        # self_spr = self.sprite.get_image_at(0) #if not self.destroyed else self.sprite.get_image_at(2)
+        #
+        # # Bottom
+        # dest.blit(self_spr, self_spr.get_rect(center=(x, y)))
+
+        top_spr = self.sprite.get_image_at(0)  # if not self.destroyed else self.sprite.get_image_at(2)
+        body_spr = self.sprite.get_image_at(1)  # if not self.destroyed else self.sprite.get_image_at(3)
 
         # Bottom
-        dest.blit(self_spr, self_spr.get_rect(center=(x, y)))
+        dest.blit(top_spr, top_spr.get_rect(center=(x, y + 2.5)))
+        # Draw
+        for i in range(1, 5):
+            dest.blit(body_spr, body_spr.get_rect(center=(x, y + 2.5 - i)))
+        # Top
+        dest.blit(top_spr, top_spr.get_rect(center=(x, y - 2.5)))
+
 
     def __copy__(self):
         return_obj = Barrel((0, 0), destroyed=self.destroyed)
@@ -93,6 +115,14 @@ class Barrel:
     def __repr__(self):
         return f"{self.repr_name}->({self.x}, {self.y})"
 
+    def __lt__(self, other):
+        return self.y < other.y
+
+    def __gt__(self, other):
+        return self.y > other.y
+
+    def __eq__(self, other):
+        return self.y == other.y
 
 class Skull:
     def __init__(self, loc:tuple[int, int]):
@@ -126,6 +156,15 @@ class Skull:
 
     def __repr__(self):
         return f"{self.repr_name}->({self.x}, {self.y})"
+
+    def __lt__(self, other):
+        return self.y < other.y
+
+    def __gt__(self, other):
+        return self.y > other.y
+
+    def __eq__(self, other):
+        return self.y == other.y
 
 
 # All the types of decoration (just to make sure when I code the completion doesn't freak out)
