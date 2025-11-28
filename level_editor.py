@@ -109,6 +109,7 @@ def load_level(pth):
             # Format
             # 0: level data
             # 1: Player spawn coordinates
+            # 2: All shits
             load_data = [l.strip() for l in f]
             for row in range(LEVEL_HEIGHT):
                 for cell in range(LEVEL_WIDTH):
@@ -120,7 +121,6 @@ def load_level(pth):
             all_miscellaneous = load_data[2].split("//")
             for misc_o in all_miscellaneous:
                 misc_objs.append(misc_objs_gen.get_miscellaneous_objects(misc_o))
-
 # Running
 while running:
     # Mouse and Camera coordinates

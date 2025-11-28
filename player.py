@@ -28,8 +28,15 @@ class SquadMan:
             "sprites/mob_spr/mobster_torso_270pistol.png",
             "sprites/mob_spr/mobster_torso_315pistol.png")
         )
+        self.leg_sprite = Sprites.Sprite(
+            (
+                "sprites/mob_spr/mobster_leg_leftup.png",
+                "sprites/mob_spr/mobster_leg_rightup.png",
+                "sprites/mob_spr/mobster_leg_normal.png"
+            )
+        )
+        self.frames = 0
         self.move_path = []
-
         SquadMan.squad_list.append(self)
 
     def set_dest(self, x, y, m):
@@ -44,28 +51,38 @@ class SquadMan:
 
     def action(self, m:list[list[int]]):
         if len(self.move_path) == 0:
-            if self.dest_x != self.x and self.dest_y != self.y:
+            if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 5:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, self.dest_x, self.dest_y)
                 self.x += math.cos(math.radians(dir_))
                 self.y -= math.sin(math.radians(dir_))
 
             if utilityfuncs.point_distance(self.x, self.y, self.dest_x, self.dest_y) < 1:
                 self.x, self.y = self.dest_x, self.dest_y
+                self.leg_sprite.set_image_index(2)
+                self.leg_sprite.set_image_speed(0)
 
         else:
             x, y = (self.move_path[0][0] * settings.cell_dimension + settings.cell_dimension/2
-                        , self.move_path[0][1] * settings.cell_dimension + settings.cell_dimension/2)
+                        , self.move_path[0][1] * settings.cell_dimension + settings.cell_dimension/2 - 2.5)
+
             if utilityfuncs.point_distance(self.x, self.y, x, y) > 5:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, x, y)
+                self.sprite.set_image_index(dir_//45)
                 self.x += math.cos(math.radians(dir_))
                 self.y -= math.sin(math.radians(dir_))
             else:
                 m[self.move_path[0][1]][self.move_path[0][0]] = 0
                 self.move_path.pop(0)
 
+            self.leg_sprite.run_sprite()
+            self.leg_sprite.set_image_speed(10/30)
+            if self.leg_sprite.image_index > 2:
+                self.leg_sprite.image_index = 0
+
 
     def render(self, dest:pygame.Surface, x, y):
         dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)))
+        dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
 
 def move_squad(x, y, m):
     sq_ls = SquadMan.squad_list

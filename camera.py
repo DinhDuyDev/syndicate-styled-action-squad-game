@@ -1,6 +1,7 @@
 import settings
 import pygame
 import utilityfuncs
+import math
 class Camera:
     def __init__(self):
         self.offset_x = 0

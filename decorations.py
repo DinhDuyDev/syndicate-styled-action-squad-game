@@ -19,10 +19,10 @@ class Crate:
         self.sprite = Sprites.Sprite(
             (
                 # Okay
-                ("sprites/barrel_spr/crate_normal_top.png" if not destroyed else "sprites/barrel_spr/crate_normal_top_broken.png")
+                ("sprites/crate_spr/crate_normal_top.png" if not destroyed else "sprites/crate_spr/crate_normal_top_broken.png")
                 if not is_wep_crate else
-                ("sprites/barrel_spr/crate_weapons_top.png" if not destroyed else "sprites/barrel_spr/crate_weapons_broken_top.png"),
-                "sprites/barrel_spr/crate_body.png" if not destroyed else "sprites/barrel_spr/crate_body_broken.png"
+                ("sprites/crate_spr/crate_weapons_top.png" if not destroyed else "sprites/crate_spr/crate_weapons_broken_top.png"),
+                "sprites/crate_spr/crate_body.png" if not destroyed else "sprites/crate_spr/crate_body_broken.png"
             )
         )
         self.repr_name = ""
@@ -52,10 +52,81 @@ class Crate:
         dest.blit(top_spr, top_spr.get_rect(center=(x, y-2.5)))
 
     def __copy__(self):
-        return Crate((0, 0), is_wep_crate=self.is_wep_crate, destroyed=self.destroyed)
+        return_obj = Crate((0, 0), is_wep_crate=self.is_wep_crate, destroyed=self.destroyed)
+        return_obj.repr_name = self.repr_name
+        return return_obj
 
     def __repr__(self):
         return f"{self.repr_name}->({self.x}, {self.y})"
 
+class Barrel:
+    def __init__(self, loc:tuple[int, int], destroyed=False):
+        self.x, self.y = loc
+
+        self.sprite = Sprites.Sprite(
+            (
+                # Okay
+                "sprites/barrel_spr/barrel_normal.png" if not destroyed else "sprites/barrel_spr/barrel_broken.png",
+                "sprites/barrel_spr/barrel_normal.png" if not destroyed else "sprites/barrel_spr/barrel_broken.png"
+            )
+        )
+        self.repr_name = ""
+        self.destroyed = destroyed
+
+    def set_xy(self, loc:tuple[float, float]):
+        self.x, self.y = loc
+
+    def xy(self):
+        return self.x, self.y
+
+    def render(self, dest:pygame.Surface, x, y):
+        self_spr = self.sprite.get_image_at(0) #if not self.destroyed else self.sprite.get_image_at(2)
+
+        # Bottom
+        dest.blit(self_spr, self_spr.get_rect(center=(x, y)))
+
+    def __copy__(self):
+        return_obj = Barrel((0, 0), destroyed=self.destroyed)
+        return_obj.repr_name = self.repr_name
+        return return_obj
+
+    def __repr__(self):
+        return f"{self.repr_name}->({self.x}, {self.y})"
+
+
+class Skull:
+    def __init__(self, loc:tuple[int, int]):
+        self.x, self.y = loc
+
+        self.sprite = Sprites.Sprite(
+            (
+                # Okay
+                "sprites/skull_spr/skull.png",
+                "sprites/skull_spr/skull.png"
+            )
+        )
+        self.repr_name = ""
+
+    def set_xy(self, loc:tuple[float, float]):
+        self.x, self.y = loc
+
+    def xy(self):
+        return self.x, self.y
+
+    def render(self, dest:pygame.Surface, x, y):
+        self_spr = self.sprite.get_image_at(0) #if not self.destroyed else self.sprite.get_image_at(2)
+
+        # Bottom
+        dest.blit(self_spr, self_spr.get_rect(center=(x, y)))
+
+    def __copy__(self):
+        return_obj = Skull((0, 0))
+        return_obj.repr_name = self.repr_name
+        return return_obj
+
+    def __repr__(self):
+        return f"{self.repr_name}->({self.x}, {self.y})"
+
+
 # All the types of decoration (just to make sure when I code the completion doesn't freak out)
-all_decoration_types = Crate
+all_decoration_types = Crate|Barrel|Skull

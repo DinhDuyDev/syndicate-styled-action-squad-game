@@ -48,8 +48,6 @@ gameCamera.offset_y = int((spawn_xy[1]-settings.WINDOW_HEIGHT/(2*settings.zoom))
 # Game Tiles
 LEVEL_TILES = tiles.get_tiles()
 
-
-
 while running:
     c_x, c_y = gameCamera.get_pos()
     c_x = int(c_x)
@@ -100,9 +98,6 @@ while running:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
         sq.render(draw_dest, sq.xy()[0]-_x, sq.xy()[1]-_y)
-
-        text_surf = font.render(str(player.SquadMan.squad_list.index(sq)), False, (255, 0, 0))
-        text_rect = text_surf.get_rect(center=(sq.x-_x, sq.y-_y))
         sq.action(LoadedScene.loaded_map)
 
     # Center
