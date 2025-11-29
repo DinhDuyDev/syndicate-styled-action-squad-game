@@ -100,7 +100,6 @@ while running:
                 clicking_on_player = False
                 _x = c_x * settings.cell_dimension
                 _y = c_y * settings.cell_dimension
-                # Interactions
                 # Interacting with the player squad
                 for sq in entities.SquadMan.squad_list:
                     sq_rect = pygame.Rect(sq.x-2-_x, sq.y-9-_y, 4, 4)#sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
