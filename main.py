@@ -15,6 +15,7 @@ import misc_objs_gen
 import Bullet
 import effects
 
+# Commit Message
 
 pygame.init()
 pygame.font.init()
