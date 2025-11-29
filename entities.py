@@ -7,7 +7,12 @@ import settings
 import utilityfuncs
 import Sprites
 import random
+import Weapons
+import Bullet
+import effects
+import camera
 
+WEAPONS_REF = Weapons.WEAPONS_REF
 
 class SquadMan:
     squad_list:list = []
@@ -17,7 +22,7 @@ class SquadMan:
         self.dest_x = self.x
         self.dest_y = self.y
         self.state = "MOVEMENT"
-        self.sprite = Sprites.Sprite(
+        self.pistol_sprite = Sprites.Sprite(
             ("sprites/mob_spr/mobster_torso_0pistol.png",
             "sprites/mob_spr/mobster_torso_45pistol.png",
             "sprites/mob_spr/mobster_torso_90pistol.png",
@@ -27,6 +32,26 @@ class SquadMan:
             "sprites/mob_spr/mobster_torso_270pistol.png",
             "sprites/mob_spr/mobster_torso_315pistol.png")
         )
+        self.shotgun_sprite = Sprites.Sprite(
+            ("sprites/mob_spr/mobster_torso_0shotgun.png",
+             "sprites/mob_spr/mobster_torso_45shotgun.png",
+             "sprites/mob_spr/mobster_torso_90shotgun.png",
+             "sprites/mob_spr/mobster_torso_135shotgun.png",
+             "sprites/mob_spr/mobster_torso_180shotgun.png",
+             "sprites/mob_spr/mobster_torso_225shotgun.png",
+             "sprites/mob_spr/mobster_torso_270shotgun.png",
+             "sprites/mob_spr/mobster_torso_315shotgun.png")
+        )
+        self.thompson_sprite = Sprites.Sprite(
+            ("sprites/mob_spr/mobster_torso_0thompson.png",
+             "sprites/mob_spr/mobster_torso_45thompson.png",
+             "sprites/mob_spr/mobster_torso_90thompson.png",
+             "sprites/mob_spr/mobster_torso_135thompson.png",
+             "sprites/mob_spr/mobster_torso_180thompson.png",
+             "sprites/mob_spr/mobster_torso_225thompson.png",
+             "sprites/mob_spr/mobster_torso_270thompson.png",
+             "sprites/mob_spr/mobster_torso_315thompson.png")
+        )
         self.leg_sprite = Sprites.Sprite(
             (
                 "sprites/mob_spr/mobster_leg_leftup.png",
@@ -34,11 +59,18 @@ class SquadMan:
                 "sprites/mob_spr/mobster_leg_normal.png"
             )
         )
+        self.sprite = self.pistol_sprite
+
         self.move_dir = 0
         self.frames = 0
         self.move_path = []
         self.focused = True # so that they look at where they're going
         self.being_used = True
+
+        self.current_weapon_name = "Magnum"
+        self.current_weapon = WEAPONS_REF[self.current_weapon_name]
+
+        self.cooldown = 0
         SquadMan.squad_list.append(self)
 
     def set_dest(self, x, y, m):
@@ -91,6 +123,43 @@ class SquadMan:
             pygame.draw.rect(dest, (0, 255, 255), (x-1, y-7, 2, 2))
         else:
             pygame.draw.rect(dest, (255, 0, 255), (x-1, y-7, 2, 2))
+
+    # def check_death(self):
+        # if self.hp < 0:
+
+    def firing(self, direction, c:camera.Camera):
+        self.cooldown += 1
+        if pygame.key.get_pressed()[pygame.K_e]:
+            if self.cooldown > self.get_weapon().fire_cooldown:
+                total_damage = 15
+                if self.being_used:
+                    md_dir = direction
+                    d = md_dir//45
+                    vec_x = math.cos(math.radians(d*45)) * 8
+                    vec_y = math.sin(math.radians(d*45)) * 8
+
+                    wep = self.get_weapon()
+                    for i in range(wep.pellets):
+                        _damage = wep.damage
+                        total_damage += _damage
+                        _inaccuracies = wep.inaccuracy
+                        _lives = wep.lives
+                        _create_ray = wep.create_ray
+                        Bullet.PlayerBullet(self.xy()[0]+vec_x, self.xy()[1]-vec_y, md_dir, self, damage=_damage, deviation=_inaccuracies,lives=_lives,create_ray=_create_ray)
+
+                    effects.MuzzleFlash(self.xy()[0]+vec_x, self.xy()[1]-vec_y)
+                    self.sprite.set_image_index(d)
+                    self.focused = False
+                print(total_damage)
+                shake_factor = total_damage / 15
+                c.screen_shake(shake_factor * 3)
+                self.cooldown = 0
+
+    def get_weapon(self):
+        return self.current_weapon
+
+    def get_weapon_name(self):
+        return self.current_weapon_name
 
     def __lt__(self, other):
         return self.y < other.y
@@ -157,6 +226,7 @@ class EnemyMobster:
         self.weapon_type = weapon_type
         self.exclude = exclude
         self.repr_name = ""
+        EnemyMobster.EnemyList.append(self)
 
     def set_dest(self, x, y, m):
         self.move_path.clear()
@@ -178,11 +248,11 @@ class EnemyMobster:
                 self.dest_x, self.dest_y = self.x, self.y
                 self.leg_sprite.set_image_index(2)
                 self.leg_sprite.set_image_speed(0)
-                dest_x = random.randint(0, settings.hor_cells * settings.cell_dimension)
-                dest_y = random.randint(0, settings.ver_cells * settings.cell_dimension)
+                dest_x = random.randint(64, settings.hor_cells * settings.cell_dimension-64)
+                dest_y = random.randint(64, settings.ver_cells * settings.cell_dimension-64)
                 while m[dest_y // settings.cell_dimension][dest_x // settings.cell_dimension] != 0:
-                    dest_x = random.randrange(0, settings.hor_cells * settings.cell_dimension)
-                    dest_y = random.randrange(0, settings.ver_cells * settings.cell_dimension)
+                    dest_x = random.randint(64, settings.hor_cells * settings.cell_dimension-64)
+                    dest_y = random.randint(64, settings.ver_cells * settings.cell_dimension-64)
                 self.set_dest(dest_x, dest_y, m)
 
         else:
@@ -212,6 +282,13 @@ class EnemyMobster:
     def render(self, dest:pygame.Surface, x, y):
         dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)), None)
         dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
+        pygame.draw.rect(dest, (255, 0, 0), (x-5, y-9, 10, 2))
+        pygame.draw.rect(dest, (0, 255, 0), (x-5, y-9, 10*self.hp/100, 2))
+
+    def check_death(self, ref:list):
+        if self.hp <= 0:
+            ref.remove(self)
+            EnemyMobster.EnemyList.remove(self)
 
     def __copy__(self):
         return EnemyMobster((self.x, self.y), exclude=self.exclude, weapon_type=self.weapon_type)

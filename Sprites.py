@@ -25,6 +25,9 @@ class Sprite:
     def get_image_at(self, i:int):
         return self.images[i]
 
+    def get_image_number(self):
+        return len(self.images)
+
     def __copy__(self):
         return Sprite(self.image_links)
 

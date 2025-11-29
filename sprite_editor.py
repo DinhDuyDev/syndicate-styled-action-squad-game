@@ -146,20 +146,13 @@ while running:
     # Pixel grid
     for i in range(len(spr.sprite_arr)):
         for j in range(len(spr.sprite_arr[0])):
-            pygame.draw.line(draw_dest, (75, 75, 75),
-                             (j * spr.cell_size, i * spr.cell_size),
-                             (j * spr.cell_size + spr.cell_size, i * spr.cell_size))
-            pygame.draw.line(draw_dest, (75, 75, 75),
-                             (j * spr.cell_size, i * spr.cell_size),
-                             (j * spr.cell_size, i * spr.cell_size + spr.cell_size))
-
             if spr.sprite_arr[i][j] != (0, 0, 0, 0):
                 pygame.draw.rect(draw_dest, spr.sprite_arr[i][j], (j * spr.cell_size, i * spr.cell_size, spr.cell_size, spr.cell_size))
             else:
                 if (i+j) % 2 == 0:
-                    pygame.draw.rect(draw_dest, (25, 25, 25), (j * spr.cell_size+1, i * spr.cell_size+1, spr.cell_size-1, spr.cell_size-1))
+                    pygame.draw.rect(draw_dest, (25, 25, 25), (j * spr.cell_size, i * spr.cell_size, spr.cell_size, spr.cell_size))
                 else:
-                    pygame.draw.rect(draw_dest, (50, 50, 50), (j * spr.cell_size+1, i * spr.cell_size+1, spr.cell_size-1, spr.cell_size-1))
+                    pygame.draw.rect(draw_dest, (50, 50, 50), (j * spr.cell_size, i * spr.cell_size, spr.cell_size, spr.cell_size))
 
     pygame.draw.line(draw_dest, (75, 75, 75), (spr.sprite_dimensions[0] * spr.cell_size, 0),
                      (spr.sprite_dimensions[0] * spr.cell_size, spr.sprite_dimensions[1] * spr.cell_size))

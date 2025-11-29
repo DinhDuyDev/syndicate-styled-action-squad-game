@@ -1,6 +1,7 @@
 import settings
 import pygame
 import utilityfuncs
+import random
 import math
 class Camera:
     def __init__(self):
@@ -8,6 +9,7 @@ class Camera:
         self.offset_y = 0
         self.count = 0
         self.frames = 3
+        self.shake_magnitude = 0
 
     def action(self):
         max_hor = settings.hor_cells
@@ -21,12 +23,22 @@ class Camera:
             self.offset_x = utilityfuncs.clamp(self.offset_x+dx, 0, max_hor-settings.hor_cells/(2*settings.zoom))
             self.offset_y = utilityfuncs.clamp(self.offset_y+dy, 0, max_ver-settings.ver_cells/(2*settings.zoom))
             self.count = 0
+
+        self.shake_magnitude *= 0.9
+
         self.count += 1
 
     def set_pos(self, x, y):
         self.offset_x = x
         self.offset_y = y
 
-    def get_pos(self):
-        return self.offset_x, self.offset_y
+    def screen_shake(self, magnitude):
+        self.shake_magnitude = magnitude
 
+    def get_pos(self):
+        x = self.offset_x
+        y = self.offset_y
+        return x, y
+
+    def camera_shake_vector(self):
+        return math.cos(math.radians(random.randint(0, 360))) * self.shake_magnitude, math.sin(math.radians(random.randint(0, 360))) * self.shake_magnitude

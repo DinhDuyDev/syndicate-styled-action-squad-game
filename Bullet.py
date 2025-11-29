@@ -3,9 +3,9 @@ import settings
 import random
 import effects
 
-class Bullet:
+class PlayerBullet:
     all_bullets = []
-    def __init__(self, x, y, direction, spawner, damage=10, r=64, deviation=7):
+    def __init__(self, x, y, direction, spawner, damage=10, r=64, deviation=7,lives=1,create_ray=False):
         self.x, self.y = x, y
         self.x_start, self.y_start = x, y
         self.direction = direction
@@ -13,9 +13,12 @@ class Bullet:
         self.spawner = spawner
         self.damage = damage
         self.range = r
-        Bullet.all_bullets.append(self)
+        self.lives = lives
+        self.hit_targets = []
+        self.create_ray = create_ray
+        PlayerBullet.all_bullets.append(self)
 
-    def work(self, map_matrix:list[list[int]]):
+    def work(self, map_matrix:list[list[int]], enemy_instances:list):
         dev = random.randrange(-self.deviation, self.deviation)
         vec_x = math.cos(math.radians(self.direction+dev))
         vec_y = math.sin(math.radians(self.direction+dev))
@@ -25,21 +28,32 @@ class Bullet:
             __x, __y = int(self.x/settings.cell_dimension), int(self.y/settings.cell_dimension)
             if map_matrix[__y][__x] != 0:
                 effects.MuzzleFlash(self.x, self.y)
-                break
+                self.range = -1000 # end the movement
+                # Create bullet holes
+                obstructed = False
+                for hole in effects.BulletHole.all_bullet_holes:
+                    if hole.get_hitbox().collidepoint(self.x, self.y):
+                        obstructed = True
+                if not obstructed:
+                    if map_matrix[__y][__x] == 3: # For obstructions that make up hitboxes for decorations
+                        self.x += vec_x * 6
+                        self.y -= vec_y * 6
+                    effects.BulletHole(self.x+vec_x*1.5, self.y-vec_y*1.5)
+
+            else:
+                for e in enemy_instances:
+                    hitbox = e.sprite.get_current_image().get_rect(center=(e.xy()[0], e.xy()[1]))
+                    if hitbox.collidepoint(self.x, self.y) and e not in self.hit_targets:
+                        self.hit_targets.append(e)
+                        effects.MuzzleFlash(self.x, self.y)
+                        self.lives -= 1
+                        break
+                if self.lives <= 0:
+                    self.range = -1000
             self.range -= 1
+        for hit in self.hit_targets:
+            hit.hp -= self.damage
 
-        # Ray(self.x_start, self.y_start, self.x, self.y)
-        Bullet.all_bullets.remove(self)
-
-
-class Ray:
-    all_rays = []
-    def __init__(self, x_start, y_start, x_end, y_end):
-        self.x_start = x_start
-        self.y_start = y_start
-        self.x_end   = x_end
-        self.y_end   = y_end
-        Ray.all_rays.append(self)
-        print(Ray.all_rays)
-    def render(self, draw_dest):
-        Ray.all_rays.remove(self)
+        if self.create_ray:
+            effects.Ray(self.x_start, self.y_start, self.x, self.y)
+        PlayerBullet.all_bullets.remove(self)

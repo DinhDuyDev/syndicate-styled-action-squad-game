@@ -80,17 +80,6 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             running = False
-        elif event.type == pygame.KEYDOWN and event.key == pygame.K_e:
-            for sq in entities.SquadMan.squad_list:
-                if sq.being_used:
-                    md_dir = utilityfuncs.point_direction(sq.xy()[0], sq.xy()[1], mx+c_x*settings.cell_dimension, my+c_y*settings.cell_dimension)
-                    d = md_dir//45
-                    vec_x = math.cos(math.radians(d*45)) * 8
-                    vec_y = math.sin(math.radians(d*45)) * 8
-                    Bullet.Bullet(sq.xy()[0]+vec_x, sq.xy()[1]-vec_y, md_dir, sq)
-                    effects.MuzzleFlash(sq.xy()[0]+vec_x, sq.xy()[1]-vec_y)
-                    sq.sprite.set_image_index(d)
-                    sq.focused = False
 
         # Interacting with game
         if pygame.MOUSEBUTTONDOWN:
@@ -149,29 +138,30 @@ while running:
     #
     # Squad
     for sq in entities.SquadMan.squad_list:
-        # _x = c_x * settings.cell_dimension
-        # _y = c_y * settings.cell_dimension
+        _x = c_x * settings.cell_dimension
+        _y = c_y * settings.cell_dimension
         # sq_rect = sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
         # pygame.draw.rect(draw_dest, (255, 255, 255), sq_rect)
         # sq.render(draw_dest, sq.xy()[0]-_x, sq.xy()[1]-_y)
+        md_dir = utilityfuncs.point_direction(sq.xy()[0]-_x, sq.xy()[1]-_y, mx, my)
         sq.action(LoadedScene.loaded_map)
-    #
-    # Enemy
+        sq.firing(md_dir, gameCamera)
+
+    # Entities are enemies and other environmental stuffs
+    # So this part is activating for all entities, not just enemies alone
     for ent in LoadedScene.all_entities:
-        # _x = c_x * settings.cell_dimension
-        # _y = c_y * settings.cell_dimension
-        # ent.render(draw_dest, ent.xy()[0]-_x, ent.xy()[1]-_y)
         ent.action(LoadedScene.loaded_map)
+        ent.check_death(LoadedScene.all_entities)
 
     # Bullets
-    for bullet in Bullet.Bullet.all_bullets:
-        bullet.work(LoadedScene.loaded_map)
+    for bullet in Bullet.PlayerBullet.all_bullets:
+        bullet.work(LoadedScene.loaded_map, entities.EnemyMobster.EnemyList)
 
     # Effects
     for eff in effects.all_effects:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
-        eff.render(draw_dest, eff.x-_x, eff.y-_y)
+        eff.render(draw_dest, _x, _y)
 
     # Center
     if center_scope:
@@ -189,7 +179,7 @@ while running:
         pygame.draw.rect(draw_dest, (0, 255, 0), (0, 0, 32 * (clock.get_fps()/60), 4))
 
     # Resizing Screem
-    game_screen.screen.blit(pygame.transform.scale_by(pygame.transform.scale(draw_dest, game_screen.get_dimensions()), settings.zoom), (0, 0))
+    game_screen.screen.blit(pygame.transform.scale_by(pygame.transform.scale(draw_dest, game_screen.get_dimensions()), settings.zoom), (gameCamera.camera_shake_vector(), gameCamera.camera_shake_vector()))
 
     pygame.display.flip()
     clock.tick(60)
