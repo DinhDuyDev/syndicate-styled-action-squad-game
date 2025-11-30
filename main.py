@@ -37,7 +37,8 @@ class LoadedScene:
     # Game Miscellaneous Objects
     loaded_miscellaneous = current_map.all_miscellaneous_objects()
     all_miscellaneous_objects: list[decorations.all_decoration_types] = []
-    all_entities: list[entities.all_entities_types] = []
+    all_entities: list[entities.all_entities_types] = [] # Doesn't include the player
+
     loaded_entities = current_map.all_entities()
     for x in loaded_miscellaneous:
         all_miscellaneous_objects.append(misc_objs_gen.get_miscellaneous_objects(x))
@@ -163,6 +164,12 @@ while running:
         _y = c_y * settings.cell_dimension
         eff.render(draw_dest, _x, _y)
 
+    # Sounds
+    for snd in effects.SoundSource.all_sounds_sources:
+        # For ALL ENEMIES
+        for enemy in entities.EnemyMobster.EnemyList:
+            enemy.hear_sound(snd)
+        snd.destroy()
     # Center
     if center_scope:
         _x = c_x * settings.cell_dimension

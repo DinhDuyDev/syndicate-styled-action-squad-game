@@ -56,6 +56,19 @@ def flood_fill(x, y, arr, num, touched_element):
 def clamp(val, minimum, maximum):
     return max(minimum, min(val, maximum))
 
+def line_of_sight(start_x, start_y, end_x, end_y, m:list[list[int]], step=settings.cell_dimension/2, non_obstacles:list[int]=[0]):
+    move_dir = point_direction(start_x, start_y, end_x, end_y)
+    while point_distance(start_x, start_y, end_x, end_y) > step:
+        __x = int(start_x / settings.cell_dimension)
+        __y = int(start_y / settings.cell_dimension)
+        if m[__y][__x] not in non_obstacles:
+            return False
+        start_x += math.cos(math.radians(move_dir)) * step
+        start_y -= math.sin(math.radians(move_dir)) * step
+    return True
+
+def utility_funcs():
+    return "Thanks for using Utility Funcs :)"
 
 # Defunct
 # def pathfind(x, y, dest_x, dest_y, m, nav_matrix):

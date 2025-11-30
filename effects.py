@@ -60,3 +60,14 @@ class Ray:
 
 effect_types = MuzzleFlash|Ray|BulletHole
 all_effects:list[effect_types] = []
+
+class SoundSource:
+    all_sounds_sources:list = []
+    def __init__(self, x, y, radius):
+        self.x = x
+        self.y = y
+        self.radius = radius
+        self.num_alert = 3
+        SoundSource.all_sounds_sources.append(self)
+    def destroy(self):
+        SoundSource.all_sounds_sources.remove(self)
