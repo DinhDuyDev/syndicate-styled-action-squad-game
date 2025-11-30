@@ -16,21 +16,30 @@ WEAPONS_REF = Weapons.WEAPONS_REF
 
 class SquadMan:
     squad_list:list = []
+    @classmethod
+    def nums_active(cls):
+        nums = 0
+        for i in SquadMan.squad_list:
+            if i.being_used:
+                nums += 1
+        return nums
+
     def __init__(self, loc:tuple[float, float]):
         self.x, self.y = loc
         self.hp = 100
         self.dest_x = self.x
         self.dest_y = self.y
         self.state = "MOVEMENT"
+
         self.pistol_sprite = Sprites.Sprite(
             ("sprites/mob_spr/mobster_torso_0pistol.png",
-            "sprites/mob_spr/mobster_torso_45pistol.png",
-            "sprites/mob_spr/mobster_torso_90pistol.png",
-            "sprites/mob_spr/mobster_torso_135pistol.png",
-            "sprites/mob_spr/mobster_torso_180pistol.png",
-            "sprites/mob_spr/mobster_torso_225pistol.png",
-            "sprites/mob_spr/mobster_torso_270pistol.png",
-            "sprites/mob_spr/mobster_torso_315pistol.png")
+             "sprites/mob_spr/mobster_torso_45pistol.png",
+             "sprites/mob_spr/mobster_torso_90pistol.png",
+             "sprites/mob_spr/mobster_torso_135pistol.png",
+             "sprites/mob_spr/mobster_torso_180pistol.png",
+             "sprites/mob_spr/mobster_torso_225pistol.png",
+             "sprites/mob_spr/mobster_torso_270pistol.png",
+             "sprites/mob_spr/mobster_torso_315pistol.png")
         )
         self.shotgun_sprite = Sprites.Sprite(
             ("sprites/mob_spr/mobster_torso_0shotgun.png",
@@ -52,6 +61,16 @@ class SquadMan:
              "sprites/mob_spr/mobster_torso_270thompson.png",
              "sprites/mob_spr/mobster_torso_315thompson.png")
         )
+        self.bar_sprite = Sprites.Sprite(
+            ("sprites/mob_spr/mobster_torso_0bar.png",
+             "sprites/mob_spr/mobster_torso_45bar.png",
+             "sprites/mob_spr/mobster_torso_90bar.png",
+             "sprites/mob_spr/mobster_torso_135bar.png",
+             "sprites/mob_spr/mobster_torso_180bar.png",
+             "sprites/mob_spr/mobster_torso_225bar.png",
+             "sprites/mob_spr/mobster_torso_270bar.png",
+             "sprites/mob_spr/mobster_torso_315bar.png")
+        )
         self.leg_sprite = Sprites.Sprite(
             (
                 "sprites/mob_spr/mobster_leg_leftup.png",
@@ -60,14 +79,13 @@ class SquadMan:
             )
         )
         self.sprite = self.pistol_sprite
-
         self.move_dir = 0
         self.frames = 0
         self.move_path = []
         self.focused = True # so that they look at where they're going
         self.being_used = True
 
-        self.current_weapon_name = "Magnum"
+        self.current_weapon_name = "Colt 1911"
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
@@ -84,11 +102,12 @@ class SquadMan:
         return self.x, self.y
 
     def action(self, m:list[list[int]]):
+        spd_modifier = (2-SquadMan.nums_active()/4) * 1.25
         if len(self.move_path) == 0:
             if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 5:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, self.dest_x, self.dest_y)
-                self.x += math.cos(math.radians(dir_)) * 0.5
-                self.y -= math.sin(math.radians(dir_)) * 0.5
+                self.x += math.cos(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * spd_modifier
+                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * spd_modifier
             else:
                 self.dest_x, self.dest_y = self.x, self.y
                 self.leg_sprite.set_image_index(2)
@@ -103,8 +122,8 @@ class SquadMan:
                 if self.focused:
                     self.sprite.set_image_index(dir_//45)
                 self.move_dir = dir_
-                self.x += math.cos(math.radians(dir_)) * 0.5
-                self.y -= math.sin(math.radians(dir_)) * 0.5
+                self.x += math.cos(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * spd_modifier
+                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * spd_modifier
             else:
                 m[self.move_path[0][1]][self.move_path[0][0]] = 0
                 self.move_path.pop(0)
@@ -131,7 +150,7 @@ class SquadMan:
         self.cooldown += 1
         if pygame.key.get_pressed()[pygame.K_e]:
             if self.cooldown > self.get_weapon().fire_cooldown:
-                total_damage = 15
+                total_damage = 20
                 if self.being_used:
                     md_dir = direction
                     d = md_dir//45
@@ -150,9 +169,9 @@ class SquadMan:
                     effects.MuzzleFlash(self.xy()[0]+vec_x, self.xy()[1]-vec_y)
                     self.sprite.set_image_index(d)
                     self.focused = False
-                print(total_damage)
-                shake_factor = total_damage / 15
-                c.screen_shake(shake_factor * 3)
+                    shake_factor = total_damage / 20
+                    c.screen_shake(shake_factor * 3)
+
                 self.cooldown = 0
 
     def get_weapon(self):
@@ -198,18 +217,55 @@ class EnemyMobster:
         self.hp = 100
         self.dest_x = self.x
         self.dest_y = self.y
-        self.sprite = Sprites.Sprite(
+        self.pistol_sprite = Sprites.Sprite(
+            ("sprites/mob_spr/mobster_torso_0pistol.png",
+             "sprites/mob_spr/mobster_torso_45pistol.png",
+             "sprites/mob_spr/mobster_torso_90pistol.png",
+             "sprites/mob_spr/mobster_torso_135pistol.png",
+             "sprites/mob_spr/mobster_torso_180pistol.png",
+             "sprites/mob_spr/mobster_torso_225pistol.png",
+             "sprites/mob_spr/mobster_torso_270pistol.png",
+             "sprites/mob_spr/mobster_torso_315pistol.png")
+        )
+        self.shotgun_sprite = Sprites.Sprite(
+            ("sprites/mob_spr/mobster_torso_0shotgun.png",
+             "sprites/mob_spr/mobster_torso_45shotgun.png",
+             "sprites/mob_spr/mobster_torso_90shotgun.png",
+             "sprites/mob_spr/mobster_torso_135shotgun.png",
+             "sprites/mob_spr/mobster_torso_180shotgun.png",
+             "sprites/mob_spr/mobster_torso_225shotgun.png",
+             "sprites/mob_spr/mobster_torso_270shotgun.png",
+             "sprites/mob_spr/mobster_torso_315shotgun.png")
+        )
+        self.thompson_sprite = Sprites.Sprite(
+            ("sprites/mob_spr/mobster_torso_0thompson.png",
+             "sprites/mob_spr/mobster_torso_45thompson.png",
+             "sprites/mob_spr/mobster_torso_90thompson.png",
+             "sprites/mob_spr/mobster_torso_135thompson.png",
+             "sprites/mob_spr/mobster_torso_180thompson.png",
+             "sprites/mob_spr/mobster_torso_225thompson.png",
+             "sprites/mob_spr/mobster_torso_270thompson.png",
+             "sprites/mob_spr/mobster_torso_315thompson.png")
+        )
+        self.bar_sprite = Sprites.Sprite(
+            ("sprites/mob_spr/mobster_torso_0bar.png",
+             "sprites/mob_spr/mobster_torso_45bar.png",
+             "sprites/mob_spr/mobster_torso_90bar.png",
+             "sprites/mob_spr/mobster_torso_135bar.png",
+             "sprites/mob_spr/mobster_torso_180bar.png",
+             "sprites/mob_spr/mobster_torso_225bar.png",
+             "sprites/mob_spr/mobster_torso_270bar.png",
+             "sprites/mob_spr/mobster_torso_315bar.png")
+        )
+        self.leg_sprite = Sprites.Sprite(
             (
-                "sprites/mob_spr/mobster_torso_0pistol.png",
-                "sprites/mob_spr/mobster_torso_45pistol.png",
-                "sprites/mob_spr/mobster_torso_90pistol.png",
-                "sprites/mob_spr/mobster_torso_135pistol.png",
-                "sprites/mob_spr/mobster_torso_180pistol.png",
-                "sprites/mob_spr/mobster_torso_225pistol.png",
-                "sprites/mob_spr/mobster_torso_270pistol.png",
-                "sprites/mob_spr/mobster_torso_315pistol.png"
+                "sprites/mob_spr/mobster_leg_leftup.png",
+                "sprites/mob_spr/mobster_leg_rightup.png",
+                "sprites/mob_spr/mobster_leg_normal.png"
             )
         )
+        self.sprite = self.thompson_sprite
+
         self.leg_sprite = Sprites.Sprite(
             (
                 "sprites/mob_spr/mobster_leg_leftup.png",
