@@ -392,7 +392,7 @@ class EnemyMobster:
         if self.hp <= 0:
             EnemyMobster.EnemyList.remove(self)
             ref.remove(self)
-
+    #
     def __copy__(self):
         return EnemyMobster((self.x, self.y), exclude=self.exclude, weapon_type=self.weapon_type)
 
