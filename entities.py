@@ -263,8 +263,8 @@ class EnemyMobster:
                 "sprites/mob_spr/mobster_leg_normal.png"
             )
         )
-        self.current_weapon_name = weapon_type
-        self.current_weapon =
+        self.current_weapon_name = random.choice(["Pistol", "Shotgun", "Thompson", "Bar"])
+        self.current_weapon = WEAPONS_REF[self.current_weapon_name]
         self.frames = 0
         self.move_path = []
         self.focused = True
@@ -301,6 +301,7 @@ class EnemyMobster:
         for i in range(len(self.variable_space)):
             self.variable_space[i] = 0
     def action(self, m:list[list[int]]):
+        self.switch_sprites()
         ## AI wing
         if self.state == "IDLE":
             if self.sound_heard is not None:
@@ -382,6 +383,16 @@ class EnemyMobster:
         self.x, self.y = loc
         self.dest_x, self.dest_y = loc
 
+    def switch_sprites(self):
+        if self.current_weapon_name == "Pistol" or self.current_weapon_name == "Revolver":
+            self.sprite = self.pistol_sprite
+        elif self.current_weapon_name == "Shotgun":
+            self.sprite = self.shotgun_sprite
+        elif self.current_weapon_name == "Thompson":
+            self.sprite = self.thompson_sprite
+        elif self.current_weapon_name == "Bar":
+            self.sprite = self.bar_sprite
+
     def render(self, dest:pygame.Surface, x, y):
         dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)), None)
         dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
@@ -394,7 +405,7 @@ class EnemyMobster:
             ref.remove(self)
     #
     def __copy__(self):
-        return EnemyMobster((self.x, self.y), exclude=self.exclude, weapon_type=self.weapon_type)
+        return EnemyMobster((self.x, self.y), exclude=self.exclude, weapon_type=self.current_weapon_name)
 
     def __repr__(self):
         return f"{self.repr_name}->({self.x}, {self.y})"
