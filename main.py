@@ -137,6 +137,7 @@ while running:
     #     _y = c_y * settings.cell_dimension
     #     msc_objs.render(draw_dest, msc_objs.xy()[0]-_x, msc_objs.xy()[1]-_y)
     #
+
     # Squad
     for sq in entities.SquadMan.squad_list:
         _x = c_x * settings.cell_dimension
@@ -147,16 +148,25 @@ while running:
         md_dir = utilityfuncs.point_direction(sq.xy()[0]-_x, sq.xy()[1]-_y, mx, my)
         sq.action(LoadedScene.loaded_map)
         sq.firing(md_dir, gameCamera)
+        sq.check_death()
 
     # Entities are enemies and other environmental stuffs
     # So this part is activating for all entities, not just enemies alone
     for ent in LoadedScene.all_entities:
+        _x = c_x * settings.cell_dimension
+        _y = c_y * settings.cell_dimension
         ent.action(LoadedScene.loaded_map)
         ent.check_death(LoadedScene.all_entities)
+        state = font.render(f"{ent.state}", False, (255, 0, 0))
+        state_rect = state.get_rect(center=(ent.x-_x, ent.y-_y-16))
+        draw_dest.blit(state, state_rect)
 
     # Bullets
     for bullet in Bullet.PlayerBullet.all_bullets:
-        bullet.work(LoadedScene.loaded_map, entities.EnemyMobster.EnemyList)
+        if isinstance(bullet.spawner, entities.SquadMan):
+            bullet.work(LoadedScene.loaded_map, entities.EnemyMobster.EnemyList)
+        else:
+            bullet.work(LoadedScene.loaded_map, entities.SquadMan.squad_list)
 
     # Effects
     for eff in effects.all_effects:
@@ -166,10 +176,14 @@ while running:
 
     # Sounds
     for snd in effects.SoundSource.all_sounds_sources:
+        _x = c_x * settings.cell_dimension
+        _y = c_y * settings.cell_dimension
         # For ALL ENEMIES
         for enemy in entities.EnemyMobster.EnemyList:
             enemy.hear_sound(snd)
+        pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
         snd.destroy()
+
     # Center
     if center_scope:
         _x = c_x * settings.cell_dimension

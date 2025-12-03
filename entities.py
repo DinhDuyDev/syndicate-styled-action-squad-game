@@ -92,7 +92,7 @@ class SquadMan:
         self.focused = True # so that they look at where they're going
         self.being_used = True
         self.knocked_back = False
-        self.current_weapon_name = "Bar"
+        self.current_weapon_name = "Pistol"
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
@@ -109,6 +109,8 @@ class SquadMan:
         return self.x, self.y
 
     def action(self, m:list[list[int]]):
+        SquadMan.middle_x = self.x
+        SquadMan.middle_y = self.y
         spd_modifier = (2-SquadMan.nums_active()/4) * 1.25
         if len(self.move_path) == 0:
             if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 2:
@@ -139,7 +141,7 @@ class SquadMan:
             if self.leg_sprite.image_index > 2:
                 self.leg_sprite.image_index = 0
 
-
+        self.hp = 10000
     def render(self, dest:pygame.Surface, x, y):
         # Being used
         dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)))
@@ -168,7 +170,8 @@ class SquadMan:
         self.cooldown += 1
         if pygame.key.get_pressed()[pygame.K_e] or pygame.mouse.get_pressed()[2]:
             if self.cooldown > self.get_weapon().fire_cooldown:
-                total_damage = WEAPONS_REF["Pistol"].damage
+                base_ref = WEAPONS_REF["Pistol"].damage
+                total_damage = base_ref
                 if self.being_used:
                     md_dir = direction
                     d = md_dir//45
@@ -184,7 +187,7 @@ class SquadMan:
                         _create_ray = wep.create_ray
                         Bullet.PlayerBullet(self.xy()[0]+vec_x, self.xy()[1]-vec_y, md_dir, self, damage=_damage, deviation=_inaccuracies,lives=_lives,create_ray=_create_ray)
 
-                    effects.SoundSource(self.xy()[0], self.xy()[1], (total_damage / 20) * 150)
+                    effects.SoundSource(self.xy()[0], self.xy()[1], (total_damage / 20) * 30)
                     effects.MuzzleFlash(self.xy()[0]+vec_x, self.xy()[1]-vec_y)
                     self.sprite.set_image_index(d)
                     self.focused = False
@@ -247,13 +250,12 @@ class EnemyMobster:
             "SEARCH",
         }
 
-
         all_sprs = gen_all_sprites()
+
         self.pistol_sprite = all_sprs["Pistol"]
         self.shotgun_sprite = all_sprs["Shotgun"]
         self.thompson_sprite = all_sprs["Thompson"]
         self.bar_sprite = all_sprs["Bar"]
-
         self.sprite = self.thompson_sprite
 
         self.leg_sprite = Sprites.Sprite(
@@ -263,15 +265,23 @@ class EnemyMobster:
                 "sprites/mob_spr/mobster_leg_normal.png"
             )
         )
+
         self.current_weapon_name = random.choice(["Pistol", "Shotgun", "Thompson", "Bar"])
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
         self.frames = 0
         self.move_path = []
-        self.focused = True
         self.faction_color = (255, 0, 0)
         self.exclude = exclude
         self.repr_name = ""
-        self.target:SquadMan|None = None
+
+        self.target_x = 0
+        self.target_y = 0
+
+        self.front_direction = 0
+        self.speed_factor = 1
+
+        self.cooldown = 0
+        self.is_firing = False
 
         # The sound heard by the enemy
         self.sound_heard:effects.SoundSource|None = None
@@ -293,53 +303,90 @@ class EnemyMobster:
     def seeing_enemy(self, enemies:list, m:list[list[int]]):
         for e in enemies:
             if utilityfuncs.line_of_sight(self.x, self.y, e.xy()[0], e.xy()[1], m):
-                self.target = e
+                self.target_x = e.xy()[0]
+                self.target_y = e.xy()[1]
                 return True
         return False
 
     def clear_variable_space(self):
         for i in range(len(self.variable_space)):
             self.variable_space[i] = 0
+
+    def stop_moving(self):
+        self.dest_x, self.dest_y = self.x, self.y
+        self.move_path.clear()
+
     def action(self, m:list[list[int]]):
         self.switch_sprites()
         ## AI wing
         if self.state == "IDLE":
             if self.sound_heard is not None:
-                self.state = "SEARCH"
+                self.state = "DECISION"
                 self.variable_space[0] = True
 
-        elif self.state == "SEARCH":
+            if self.seeing_enemy(SquadMan.squad_list, m):
+                self.state = "ATTACK"
+                self.cooldown = -20
+                self.clear_variable_space()
+
+        elif self.state == "DECISION":
             if self.sound_heard is not None:
-                if utilityfuncs.point_distance(self.x, self.y, self.sound_heard.x, self.sound_heard.y) < 30:
-                    self.sound_heard = None # reached location of sound. Doesn't see anything.
-                    self.state = "IDLE"
-                    self.clear_variable_space()
+                self.set_dest(self.sound_heard.x, self.sound_heard.y, m)
+                self.sound_heard = None
+                self.state = "IDLE"
+                self.set_speed_factor(3)
 
-                if self.variable_space[0]:
-                    self.set_dest(self.sound_heard.x, self.sound_heard.y, m)
-                    self.variable_space[0] = False
+            if self.seeing_enemy(SquadMan.squad_list, m):
+                self.state = "ATTACK"
+                self.cooldown = -20
+                self.clear_variable_space()
 
-                if self.seeing_enemy(SquadMan.squad_list, m):
-                    self.state = "Attack"
-                    self.clear_variable_space()
+        elif self.state == "ATTACK":
+            __d = utilityfuncs.point_direction(self.x, self.y, self.target_x, self.target_y)
+            if self.seeing_enemy(SquadMan.squad_list, m):
+                self.sprite.set_image_index(__d // 45)
+                self.firing(__d)
+                self.stop_moving()
+            else:
+                self.state = "IDLE"
+                self.clear_variable_space()
+                self.set_dest(self.target_x, self.target_y, m)
+                self.set_speed_factor(3)
 
-        elif self.state == "Attack":
-            if self.target is not None:
-                __d = utilityfuncs.point_direction(self.x, self.y, self.target.x, self.target.y)
-                self.sprite.set_image_index(__d//45)
+        # elif self.state == "WAIT_AMBUSH":
 
         self.movement(m)
+
+    def set_speed_factor(self, spd:float):
+        self.speed_factor = spd
+
+    def firing(self, direction):
+        self.cooldown += 1
+        if self.cooldown > self.get_weapon().fire_cooldown:
+            total_damage = WEAPONS_REF["Pistol"].damage
+            md_dir = direction
+            d = md_dir//45
+            vec_x = math.cos(math.radians(d*45)) * 8
+            vec_y = math.sin(math.radians(d*45)) * 8
+
+            wep = self.get_weapon()
+            for i in range(wep.pellets):
+                _damage = wep.damage
+                total_damage += _damage
+                _inaccuracies = wep.inaccuracy
+                _lives = wep.lives
+                _create_ray = wep.create_ray
+                Bullet.PlayerBullet(self.xy()[0]+vec_x, self.xy()[1]-vec_y, md_dir, self, damage=_damage, deviation=_inaccuracies,lives=_lives,create_ray=True)
+
+            effects.MuzzleFlash(self.xy()[0]+vec_x, self.xy()[1]-vec_y)
+            self.sprite.set_image_index(d)
+            self.cooldown = 0
 
     def hear_sound(self, snd:effects.SoundSource):
         chance = random.randint(0, 100)
         if chance < 33:
             if utilityfuncs.point_distance(self.x, self.y, snd.x, snd.y) < snd.radius:
-                if self.sound_heard is not None:
-                    sh = self.sound_heard
-                    if utilityfuncs.point_distance(sh.x, sh.y, snd.x, snd.y) > 60:
-                        self.sound_heard = snd
-                else:
-                    self.sound_heard = snd
+                self.sound_heard = snd
 
     def get_weapon(self):
         return self.current_weapon
@@ -365,10 +412,10 @@ class EnemyMobster:
 
             if utilityfuncs.point_distance(self.x, self.y, x, y) > 5:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, x, y)
-                if self.focused:
-                    self.sprite.set_image_index(dir_//45)
-                self.x += math.cos(math.radians(dir_)) * 0.5
-                self.y -= math.sin(math.radians(dir_)) * 0.5
+                self.front_direction = dir_
+                self.sprite.set_image_index(dir_//45)
+                self.x += math.cos(math.radians(dir_)) * 0.5 * self.speed_factor
+                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.speed_factor
             else:
                 m[self.move_path[0][1]][self.move_path[0][0]] = 0
                 self.move_path.pop(0)
