@@ -4,12 +4,14 @@ import utilityfuncs
 import random
 import math
 class Camera:
+    activeCam = None
     def __init__(self):
         self.offset_x = 0
         self.offset_y = 0
         self.count = 0
         self.frames = 3
         self.shake_magnitude = 0
+        Camera.activeCam = self
 
     def action(self):
         max_hor = settings.hor_cells

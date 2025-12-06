@@ -30,10 +30,13 @@ font = pygame.font.SysFont("Arial", 10)
 # Map
 new_map = False
 center_scope = False
+
+### ALL THINGS FROM THE LOADED SCENES
 class LoadedScene:
     loaded_map: list[list[int]] = [[0 for x in range(settings.hor_cells)] for y in range(
         settings.ver_cells)] if new_map else map.GameMap.get_map().get_level_matrix()
     current_map = map.GameMap.get_map()
+
     # Game Miscellaneous Objects
     loaded_miscellaneous = current_map.all_miscellaneous_objects()
     all_miscellaneous_objects: list[decorations.all_decoration_types] = []
@@ -43,9 +46,10 @@ class LoadedScene:
     for x in loaded_miscellaneous:
         all_miscellaneous_objects.append(misc_objs_gen.get_miscellaneous_objects(x))
 
-    for x in loaded_entities:
+    for x in loaded_entities: # This is just the enemies by the
         all_entities.append(entities_gen.get_entities(x))
 
+    # Draw stack
     draw_stack:list[decorations.all_decoration_types|entities.all_entities_types] = entities.SquadMan.squad_list + all_entities + all_miscellaneous_objects
 
 
@@ -71,6 +75,9 @@ LEVEL_TILES = tiles.get_tiles()
 class user_mouse:
     mouse_pressed = False
 while running:
+    ####################
+    # ORDERING SPRITES #
+    ####################
     LoadedScene.draw_stack.clear()
     LoadedScene.draw_stack = entities.SquadMan.squad_list + LoadedScene.all_entities + LoadedScene.all_miscellaneous_objects
     LoadedScene.draw_stack.sort()
@@ -82,7 +89,9 @@ while running:
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             running = False
 
-        # Interacting with game
+        ####################################
+        # EVERYTHING INTERACTING WITH GAME #
+        ####################################
         if pygame.MOUSEBUTTONDOWN:
             if not pygame.mouse.get_pressed()[0]:
                 user_mouse.mouse_pressed = False
@@ -104,12 +113,19 @@ while running:
                     if LoadedScene.loaded_map[int(my/settings.cell_dimension)+c_y][int(mx/settings.cell_dimension)+c_x] == 0:
                         p.move_squad(mx+_x, my+_y, LoadedScene.loaded_map)
 
-    # Camera
+    ###############
+    # ALL CAMERAS #
+    ###############
     gameCamera.action()
 
+    ##############
+    # BACKGROUND #
+    ##############
     draw_dest.fill((50, 50, 50))
 
-    # Rendering the level
+    #######################
+    # RENDERING THE LEVEL #
+    #######################
     for y in range(c_y, c_y + settings.ver_cells//2//settings.zoom):#settings.ver_cells):
         for x in range(c_x, c_x + settings.hor_cells//2//settings.zoom):#settings.hor_cells):
             if LoadedScene.loaded_map[y][x] != 0 and LoadedScene.loaded_map[y][x] != 3:
@@ -147,8 +163,11 @@ while running:
         # sq.render(draw_dest, sq.xy()[0]-_x, sq.xy()[1]-_y)
         md_dir = utilityfuncs.point_direction(sq.xy()[0]-_x, sq.xy()[1]-_y, mx, my)
         sq.action(LoadedScene.loaded_map)
-        sq.firing(md_dir, gameCamera)
+        sq.firing(md_dir)
         sq.check_death()
+        # health_text = font.render(str(sq.hp), False, (255, 0, 0))
+        # health_rect = health_text.get_rect(center=(sq.xy()[0]-_x, sq.xy()[1]-6-_y))
+        # draw_dest.blit(health_text, health_rect)
 
     # Entities are enemies and other environmental stuffs
     # So this part is activating for all entities, not just enemies alone
@@ -157,9 +176,9 @@ while running:
         _y = c_y * settings.cell_dimension
         ent.action(LoadedScene.loaded_map)
         ent.check_death(LoadedScene.all_entities)
-        state = font.render(f"{ent.state}", False, (255, 0, 0))
-        state_rect = state.get_rect(center=(ent.x-_x, ent.y-_y-16))
-        draw_dest.blit(state, state_rect)
+        # state = font.render(f"{ent.state}", False, (255, 0, 0))
+        # state_rect = state.get_rect(center=(ent.x-_x, ent.y-_y-16))
+        # draw_dest.blit(state, state_rect)
 
     # Bullets
     for bullet in Bullet.PlayerBullet.all_bullets:
@@ -181,7 +200,7 @@ while running:
         # For ALL ENEMIES
         for enemy in entities.EnemyMobster.EnemyList:
             enemy.hear_sound(snd)
-        pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
+        # pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
         snd.destroy()
 
     # Center

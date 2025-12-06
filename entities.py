@@ -91,11 +91,16 @@ class SquadMan:
         self.move_path = []
         self.focused = True # so that they look at where they're going
         self.being_used = True
-        self.knocked_back = False
-        self.current_weapon_name = "Pistol"
+
+        self.knock_back_strength = 0
+        self.knock_back_dir = 0
+
+        self.current_weapon_name = "Revolver"
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
+        self.cooldown_steps = 0
+
         SquadMan.squad_list.append(self)
 
     def set_dest(self, x, y, m):
@@ -111,6 +116,10 @@ class SquadMan:
     def action(self, m:list[list[int]]):
         SquadMan.middle_x = self.x
         SquadMan.middle_y = self.y
+
+        # _kx = self.x+math.cos(math.radians(self.knock_back_dir)) * 2
+        # _ky = self.x+math.cos(math.radians(self.knock_back_dir)) * 2
+        # if m[]
         spd_modifier = (2-SquadMan.nums_active()/4) * 1.25
         if len(self.move_path) == 0:
             if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 2:
@@ -129,7 +138,7 @@ class SquadMan:
             if utilityfuncs.point_distance(self.x, self.y, x, y) > 5:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, x, y)
                 if self.focused:
-                    self.sprite.set_image_index(dir_//45)
+                    self.sprite.set_image_index(int(dir_/45))
                 self.x += math.cos(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * spd_modifier
                 self.y -= math.sin(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * spd_modifier
             else:
@@ -141,7 +150,14 @@ class SquadMan:
             if self.leg_sprite.image_index > 2:
                 self.leg_sprite.image_index = 0
 
-        self.hp = 10000
+            # If the squadder is the front man
+            if self.cooldown_steps >= 30 * (1/spd_modifier) and SquadMan.squad_list.index(self) == 0:
+                effects.SoundSource(self.x, self.y, 10*(5/spd_modifier**2)) # Also used to make noises
+                self.cooldown_steps = 0
+            else:
+                self.cooldown_steps += 1
+
+        # self.hp = 10000
     def render(self, dest:pygame.Surface, x, y):
         # Being used
         dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)))
@@ -165,7 +181,7 @@ class SquadMan:
         elif self.current_weapon_name == "Bar":
             self.sprite = self.bar_sprite
 
-    def firing(self, direction, c:camera.Camera):
+    def firing(self, direction):
         self.switch_sprites()
         self.cooldown += 1
         if pygame.key.get_pressed()[pygame.K_e] or pygame.mouse.get_pressed()[2]:
@@ -192,7 +208,7 @@ class SquadMan:
                     self.sprite.set_image_index(d)
                     self.focused = False
                     shake_factor = total_damage / 20
-                    c.screen_shake(shake_factor * 3)
+                    camera.Camera.activeCam.screen_shake(shake_factor * 3)
 
                 self.cooldown = 0
 
@@ -266,7 +282,7 @@ class EnemyMobster:
             )
         )
 
-        self.current_weapon_name = random.choice(["Pistol", "Shotgun", "Thompson", "Bar"])
+        self.current_weapon_name = "Thompson"#random.choice(["Pistol", "Shotgun", "Thompson", "Bar"])
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
         self.frames = 0
         self.move_path = []
@@ -318,42 +334,94 @@ class EnemyMobster:
 
     def action(self, m:list[list[int]]):
         self.switch_sprites()
-        ## AI wing
         if self.state == "IDLE":
             if self.sound_heard is not None:
                 self.state = "DECISION"
-                self.variable_space[0] = True
+                self.clear_variable_space()
 
             if self.seeing_enemy(SquadMan.squad_list, m):
                 self.state = "ATTACK"
+                self.move_path.clear()
                 self.cooldown = -20
                 self.clear_variable_space()
 
         elif self.state == "DECISION":
+            # If heard a sound, decide what happens next
             if self.sound_heard is not None:
-                self.set_dest(self.sound_heard.x, self.sound_heard.y, m)
-                self.sound_heard = None
-                self.state = "IDLE"
-                self.set_speed_factor(3)
+                # if utilityfuncs.point_distance(self.x, self.y, self.sound_heard.x, self.sound_heard) > 90:
+                __x = int(self.sound_heard.x/settings.cell_dimension)
+                __y = int(self.sound_heard.y/settings.cell_dimension)
+                if m[__y][__x] == 0:
+                    print("Can move to player")
+                    self.set_dest(self.sound_heard.x, self.sound_heard.y, m)
+                    self.clear_variable_space()
+                    self.sound_heard = None
+                    self.state = "MOVE_TO_WHERE_LAST_SEEN_ENEMY"
+                    self.set_speed_factor(3)
 
+        elif self.state == "MOVE_TO_WHERE_LAST_SEEN_ENEMY":
+            # Using space 1 of variable space to hold cooldown
+            # If the enemy cannot legitimately find player anymore, they move around in search of them
+            if len(self.move_path) == 0:
+                # Temporary Fix
+                self.variable_space[14] = True # If didn't see the player anymore
+                if self.sound_heard is not None:
+                    self.state = "DECISION"
+                    self.clear_variable_space()
+
+                self.variable_space[0] += 1
+                if self.variable_space[0] >= 12 * 60:
+                    self.state = "IDLE"
+                    self.clear_variable_space()
+                else:
+                    self.variable_space[1] += 1
+                    if self.variable_space[1] >= 1 * 30 + self.variable_space[2]:
+                        # Freakout cooldown
+                        self.variable_space[2] += 20
+                        __search_range = 20
+                        __x = self.x+random.randrange(-__search_range, __search_range)
+                        __y = self.y+random.randrange(-__search_range, __search_range)
+                        while m[int(__y/settings.cell_dimension)][int(__x/settings.cell_dimension)] != 0:
+                            __x = self.x + random.randrange(-__search_range, __search_range)
+                            __y = self.y + random.randrange(-__search_range, __search_range)
+                        self.set_dest(__x, __y, m)
+                        self.variable_space[1] = 0
+
+            # Seeing player then destroy them
             if self.seeing_enemy(SquadMan.squad_list, m):
                 self.state = "ATTACK"
-                self.cooldown = -20
+                self.move_path.clear()
+                self.cooldown = 1000 # Attack instantly since the player's arrival is expected
                 self.clear_variable_space()
 
         elif self.state == "ATTACK":
+            # Move around a little
+            __search_range = 15
+            if len(self.move_path) == 0:
+                __x = self.x + random.randrange(-__search_range, __search_range)
+                __y = self.y + random.randrange(-__search_range, __search_range)
+                while m[int(__y / settings.cell_dimension)][int(__x / settings.cell_dimension)] != 0 and utilityfuncs.line_of_sight(self.x, self.y, __x, __y, m, settings.cell_dimension/1.5):
+                    __x = self.x + random.randrange(-__search_range, __search_range)
+                    __y = self.y + random.randrange(-__search_range, __search_range)
+                self.set_speed_factor(1)
+                self.set_dest(__x, __y, m)
+                self.is_firing = True
+
             __d = utilityfuncs.point_direction(self.x, self.y, self.target_x, self.target_y)
             if self.seeing_enemy(SquadMan.squad_list, m):
-                self.sprite.set_image_index(__d // 45)
+                self.sprite.set_image_index(int(__d / 45))
                 self.firing(__d)
-                self.stop_moving()
+                # self.stop_moving()
             else:
-                self.state = "IDLE"
+                self.is_firing = False
+                self.state = "MOVE_TO_WHERE_LAST_SEEN_ENEMY" # when going to where enemy is last seen, do not have an empty move path
                 self.clear_variable_space()
                 self.set_dest(self.target_x, self.target_y, m)
-                self.set_speed_factor(3)
+                self.set_speed_factor(1)
+                self.sound_heard = None
 
         # elif self.state == "WAIT_AMBUSH":
+
 
         self.movement(m)
 
@@ -363,11 +431,12 @@ class EnemyMobster:
     def firing(self, direction):
         self.cooldown += 1
         if self.cooldown > self.get_weapon().fire_cooldown:
-            total_damage = WEAPONS_REF["Pistol"].damage
+            base_ref = WEAPONS_REF["Pistol"].damage
+            total_damage = base_ref
             md_dir = direction
-            d = md_dir//45
-            vec_x = math.cos(math.radians(d*45)) * 8
-            vec_y = math.sin(math.radians(d*45)) * 8
+            d = md_dir // 45
+            vec_x = math.cos(math.radians(d * 45)) * 8
+            vec_y = math.sin(math.radians(d * 45)) * 8
 
             wep = self.get_weapon()
             for i in range(wep.pellets):
@@ -376,10 +445,14 @@ class EnemyMobster:
                 _inaccuracies = wep.inaccuracy
                 _lives = wep.lives
                 _create_ray = wep.create_ray
-                Bullet.PlayerBullet(self.xy()[0]+vec_x, self.xy()[1]-vec_y, md_dir, self, damage=_damage, deviation=_inaccuracies,lives=_lives,create_ray=True)
+                Bullet.PlayerBullet(self.xy()[0] + vec_x, self.xy()[1] - vec_y, md_dir, self, damage=_damage,
+                                    deviation=_inaccuracies, lives=_lives, create_ray=_create_ray)
 
-            effects.MuzzleFlash(self.xy()[0]+vec_x, self.xy()[1]-vec_y)
+            effects.SoundSource(self.xy()[0], self.xy()[1], (total_damage / 20) * 30)
+            effects.MuzzleFlash(self.xy()[0] + vec_x, self.xy()[1] - vec_y)
             self.sprite.set_image_index(d)
+            shake_factor = total_damage / 20
+            camera.Camera.activeCam.screen_shake(shake_factor * 3)
             self.cooldown = 0
 
     def hear_sound(self, snd:effects.SoundSource):
@@ -413,7 +486,8 @@ class EnemyMobster:
             if utilityfuncs.point_distance(self.x, self.y, x, y) > 5:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, x, y)
                 self.front_direction = dir_
-                self.sprite.set_image_index(dir_//45)
+                if not self.is_firing:
+                    self.sprite.set_image_index(dir_//45)
                 self.x += math.cos(math.radians(dir_)) * 0.5 * self.speed_factor
                 self.y -= math.sin(math.radians(dir_)) * 0.5 * self.speed_factor
             else:

@@ -35,9 +35,6 @@ class PlayerBullet:
                     if hole.get_hitbox().collidepoint(self.x, self.y):
                         obstructed = True
                 if not obstructed:
-                    if map_matrix[__y][__x] == 3: # For obstructions that make up hitboxes for decorations
-                        self.x += vec_x * 6
-                        self.y -= vec_y * 6
                     effects.BulletHole(self.x+vec_x*1.5, self.y-vec_y*1.5)
 
             else:
