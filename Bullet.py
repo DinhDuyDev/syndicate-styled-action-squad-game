@@ -2,6 +2,8 @@ import math
 import settings
 import random
 import effects
+import utilityfuncs
+
 
 class PlayerBullet:
     all_bullets = []
@@ -44,6 +46,7 @@ class PlayerBullet:
                         self.hit_targets.append(e)
                         effects.MuzzleFlash(self.x, self.y)
                         self.lives -= 1
+                        __d = utilityfuncs.point_direction(self.x, self.y, e.x, e.y)
                         break
                 if self.lives <= 0:
                     self.range = -1000

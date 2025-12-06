@@ -200,7 +200,7 @@ while running:
         # For ALL ENEMIES
         for enemy in entities.EnemyMobster.EnemyList:
             enemy.hear_sound(snd)
-        # pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
+        pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
         snd.destroy()
 
     # Center

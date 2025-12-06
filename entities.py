@@ -95,7 +95,7 @@ class SquadMan:
         self.knock_back_strength = 0
         self.knock_back_dir = 0
 
-        self.current_weapon_name = "Revolver"
+        self.current_weapon_name = "Shotgun"
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
@@ -114,12 +114,6 @@ class SquadMan:
         return self.x, self.y
 
     def action(self, m:list[list[int]]):
-        SquadMan.middle_x = self.x
-        SquadMan.middle_y = self.y
-
-        # _kx = self.x+math.cos(math.radians(self.knock_back_dir)) * 2
-        # _ky = self.x+math.cos(math.radians(self.knock_back_dir)) * 2
-        # if m[]
         spd_modifier = (2-SquadMan.nums_active()/4) * 1.25
         if len(self.move_path) == 0:
             if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 2:
@@ -166,6 +160,8 @@ class SquadMan:
             pygame.draw.rect(dest, (0, 255, 255), (x-1, y-7, 2, 2))
         else:
             pygame.draw.rect(dest, (255, 0, 255), (x-1, y-7, 2, 2))
+        pygame.draw.rect(dest, (255, 0, 0), (x - 5, y - 9, 10, 2))
+        pygame.draw.rect(dest, (0, 255, 0), (x - 5, y - 9, 10 * self.hp / 100, 2))
 
     def check_death(self):
         if self.hp < 0:
@@ -282,7 +278,7 @@ class EnemyMobster:
             )
         )
 
-        self.current_weapon_name = "Thompson"#random.choice(["Pistol", "Shotgun", "Thompson", "Bar"])
+        self.current_weapon_name = random.choice(["Pistol", "Shotgun", "Thompson", "Bar"])
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
         self.frames = 0
         self.move_path = []
@@ -391,7 +387,7 @@ class EnemyMobster:
             if self.seeing_enemy(SquadMan.squad_list, m):
                 self.state = "ATTACK"
                 self.move_path.clear()
-                self.cooldown = 1000 # Attack instantly since the player's arrival is expected
+                self.cooldown = -10 # Bit of a delay
                 self.clear_variable_space()
 
         elif self.state == "ATTACK":
