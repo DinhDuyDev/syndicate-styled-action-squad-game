@@ -12,7 +12,19 @@ def misc_objects_generator(): # CAN ONLY BE USED IF A VIDEO MODE HAS BEEN SET
             "BarrelBroken": decorations.Barrel((0, 0), destroyed=True),
             "Skull": decorations.Skull((0, 0)),
             "TableRand": decorations.Table((0, 0)),
-            "TableToppled": decorations.TableToppled((0, 0)),
+            "Table0": decorations.Table((0, 0),angle=0),
+            "Table45": decorations.Table((0, 0),angle=45),
+            "Table90": decorations.Table((0, 0),angle=90),
+            "Table135": decorations.Table((0, 0),angle=135),
+            "TableToppledRand": decorations.TableToppled((0, 0)),
+            "TableToppled0": decorations.TableToppled((0, 0),angle=0),
+            "TableToppled45": decorations.TableToppled((0, 0),angle=45),
+            "TableToppled90": decorations.TableToppled((0, 0),angle=90),
+            "TableToppled135": decorations.TableToppled((0, 0),angle=135),
+            "TableToppled180": decorations.TableToppled((0, 0), angle=180),
+            "TableToppled225": decorations.TableToppled((0, 0), angle=225),
+            "TableToppled270": decorations.TableToppled((0, 0), angle=270),
+            "TableToppled315": decorations.TableToppled((0, 0), angle=315)
         }
         return misc_objs_dict
     return AssertionError("PYGAME DISPLAY WAS NOT INITIALIZED")

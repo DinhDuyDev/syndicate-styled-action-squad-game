@@ -15,44 +15,70 @@ import misc_objs_gen
 import Bullet
 import effects
 
-# Commit Message
+###########################
+# Initializing everything #
+###########################
 
 pygame.init()
 pygame.font.init()
 
-# UI / Screen setup
+#####################
+# UI / Screen setup #
+#####################
+
 game_screen = screen.Screen(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
 draw_dest = game_screen.screen.copy()
 running = True
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("Arial", 10)
 
-# Map
+#######
+# Map #
+#######
 new_map = False
 center_scope = False
 
-### ALL THINGS FROM THE LOADED SCENES
+#########################################
+### ALL THINGS FROM THE LOADED SCENES ###
+#########################################
 class LoadedScene:
-    loaded_map: list[list[int]] = [[0 for x in range(settings.hor_cells)] for y in range(
-        settings.ver_cells)] if new_map else map.GameMap.get_map().get_level_matrix()
-    current_map = map.GameMap.get_map()
+    loaded_map: list[list[int]] = None
+    current_map = None
 
     # Game Miscellaneous Objects
-    loaded_miscellaneous = current_map.all_miscellaneous_objects()
+    loaded_miscellaneous = None
     all_miscellaneous_objects: list[decorations.all_decoration_types] = []
     all_entities: list[entities.all_entities_types] = [] # Doesn't include the player
 
-    loaded_entities = current_map.all_entities()
-    for x in loaded_miscellaneous:
-        all_miscellaneous_objects.append(misc_objs_gen.get_miscellaneous_objects(x))
-
-    for x in loaded_entities: # This is just the enemies by the
-        all_entities.append(entities_gen.get_entities(x))
-
     # Draw stack
-    draw_stack:list[decorations.all_decoration_types|entities.all_entities_types] = entities.SquadMan.squad_list + all_entities + all_miscellaneous_objects
+    draw_stack:list[decorations.all_decoration_types|entities.all_entities_types] = []#entities.SquadMan.squad_list + all_entities + all_miscellaneous_objects
 
+# Very shaky level loading mechanism
+def load_level(index: int):
+    map.GameMap.set_level(index)
+    # Geometry
+    LoadedScene.loaded_map = [[0 for x in range(settings.hor_cells)] for y in range(
+        settings.ver_cells)] if new_map else map.GameMap.get_map().get_level_matrix()
 
+    # Other Map Data
+    curr_map = map.GameMap.get_map()
+    LoadedScene.current_map = map.GameMap.get_map()
+    LoadedScene.loaded_miscellaneous = curr_map.all_miscellaneous_objects()
+    LoadedScene.all_miscellaneous_objects.clear()
+    LoadedScene.all_entities.clear()
+    loaded_miscellaneous = curr_map.all_miscellaneous_objects()
+    loaded_entities = curr_map.all_entities()
+
+    for x in loaded_miscellaneous:
+        LoadedScene.all_miscellaneous_objects.append(misc_objs_gen.get_miscellaneous_objects(x))
+
+    for x in loaded_entities:  # This is just the enemies by the
+        LoadedScene.all_entities.append(entities_gen.get_entities(x))
+
+# load_level(0)
+# load_level(1)
+
+load_level(1)
 print(LoadedScene.all_entities)
 spawn_xy = LoadedScene.current_map.get_spawn_point()
 

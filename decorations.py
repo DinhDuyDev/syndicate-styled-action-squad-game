@@ -280,7 +280,7 @@ class TableToppled:
             # pygame.draw.line(dest, (0, 255, 0), (x, y),
             #                  (x+math.cos(math.radians(self.angle))*64,y-math.sin(math.radians(self.angle))*64))
 
-        if self.angle < 180:
+        if 0 <= self.angle < 90 or 270 < self.angle < 360:
             draw_legs()
             draw_top()
         else:

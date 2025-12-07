@@ -71,6 +71,7 @@ mouse_held_down = False
 misc_objs:list[decorations.all_decoration_types] = []
 ent_list:list[decorations.all_decoration_types] = []
 
+scroll_y = 0
 
 # Camera
 CameraView = camera.Camera()
@@ -93,8 +94,8 @@ def save_level(lv:list[list[int]], pth):
                 for cell in row:
                     level_data += str(cell)
             level_data += "\n"
-            write_data.append(level_data)
-            write_data.append(f"{Entities.player_spawn_point[0]} {Entities.player_spawn_point[1]}\n")
+            write_data.append(f"MAP_GEOMETRY : {level_data}")
+            write_data.append(f"PLAYER_SPAWN : {Entities.player_spawn_point[0]} {Entities.player_spawn_point[1]}\n")
 
             # Miscellaneous
             save_objs = ""
@@ -104,7 +105,7 @@ def save_level(lv:list[list[int]], pth):
                     save_objs += repr(obj) + "//"
                 else:
                     save_objs += repr(obj)
-            write_data.append(f"{save_objs}\n")
+            write_data.append(f"MISCELLANEOUS : {save_objs}\n")
 
             # Entities
             save_objs = ""
@@ -114,7 +115,7 @@ def save_level(lv:list[list[int]], pth):
                     save_objs += repr(obj) + "//"
                 else:
                     save_objs += repr(obj)
-            write_data.append(f"{save_objs}")
+            write_data.append(f"ENTITIES : {save_objs}")
             f.writelines(write_data)
 
 def load_level(pth):
@@ -122,26 +123,25 @@ def load_level(pth):
     if lvl_pth.exists():
         setup_level(Level.level, LEVEL_WIDTH, LEVEL_HEIGHT)
         with open(pth, 'r') as f:
-            # Format
-            # 0: level data
-            # 1: Player spawn coordinates
-            # 2: All shits
+            # Clear all previous data
             misc_objs.clear()
             ent_list.clear()
-            load_data = [l.strip() for l in f]
+            load_data = [l.strip().split(":") for l in f]
+            loaded_data_dict = {l[0].strip():l[1].strip() for l in load_data}
+            print(loaded_data_dict)
+
             for row in range(LEVEL_HEIGHT):
                 for cell in range(LEVEL_WIDTH):
-                    Level.level[row][cell] = int(load_data[0][row*LEVEL_WIDTH+cell])
+                    Level.level[row][cell] = int(loaded_data_dict["MAP_GEOMETRY"][row*LEVEL_WIDTH+cell])
 
-            player_loc = load_data[1].split()
+            player_loc = loaded_data_dict["PLAYER_SPAWN"].split()
             Entities.player_spawn_point = (float(player_loc[0]), float(player_loc[1]))
 
-            all_miscellaneous = load_data[2].split("//") if len(load_data) >= 3 else ""
+            all_miscellaneous = loaded_data_dict["MISCELLANEOUS"].split("//") if loaded_data_dict["MISCELLANEOUS"] != "" else ""
             for misc_o in all_miscellaneous:
                 misc_objs.append(misc_objs_gen.get_miscellaneous_objects(misc_o))
 
-
-            all_entities = load_data[3].split("//") if len(load_data) >= 4 else ""
+            all_entities = loaded_data_dict["ENTITIES"].split("//") if loaded_data_dict["ENTITIES"] != "" else ""
             for ent_o in all_entities:
                 ent_list.append(entities_gen.get_entities(ent_o))
 # Running
@@ -153,6 +153,9 @@ while running:
     mx, my = utilityfuncs.mouse_xy_transformation(draw_dest, game_screen.screen)
 
     for event in pygame.event.get():
+        # Scrolling
+        if event.type == pygame.MOUSEWHEEL:
+            scroll_y -= event.y
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             running = False
         elif event.type == pygame.KEYDOWN:
@@ -224,6 +227,7 @@ while running:
                 if pygame.mouse.get_pressed()[0]:
                     tool_mode = tool_name
                     print(tool_mode)
+                    scroll_y = 0
                     pygame.draw.rect(draw_dest, (255, 0, 255), img_rect, width=1)
                 else:
                     pygame.draw.rect(draw_dest, (255, 0, 255), img_rect)
@@ -233,28 +237,31 @@ while running:
         if tool_mode == "Misc":
             index = 0
             for key, obj in MISC_OBJECTS.items():
-                tx, ty = SW - 16, (index + 1) * 16
+                tx, ty = SW - 32, (index + 1) * 16 - scroll_y
                 obj_spr = obj.sprite.get_current_image()
-                obj_rect = obj_spr.get_rect(topleft=(tx, ty))
-
+                obj_rect = obj_spr.get_rect(center=(tx, ty))
+                item_name = font.render(key, False, (255, 0, 0))
+                item_name_rect = item_name.get_rect(topleft=(tx-64, ty))
                 if key == selected_object:
-                    pygame.draw.rect(draw_dest, (0, 255, 0), (tx - 3, ty - 3, 16, 16))
+                    pygame.draw.rect(draw_dest, (0, 255, 0), (tx - 8, ty - 8, 16, 16))
 
                 if obj_rect.collidepoint(mx, my):
                     if pygame.mouse.get_pressed()[0]:
                         selected_object = key
-                        pygame.draw.rect(draw_dest, (255, 0, 255), (tx - 3, ty - 3, 16, 16), width=1)
+                        pygame.draw.rect(draw_dest, (255, 0, 255), (tx - 8, ty - 8, 16, 16), width=1)
                     else:
-                        pygame.draw.rect(draw_dest, (255, 0, 255), (tx - 3, ty - 3, 16, 16))
+                        pygame.draw.rect(draw_dest, (255, 0, 255), (tx - 8, ty - 8, 16, 16))
 
                 draw_dest.blit(obj_spr, obj_rect)
+                draw_dest.blit(item_name, item_name_rect)
                 index += 1
+
         elif tool_mode == "Enemy_Place":
             index = 0
             for key, obj in ENTITY_OBJECTS.items():
-                tx, ty = SW - 16, (index + 1) * 16
+                tx, ty = SW - 32, (index + 1) * 16 - scroll_y
                 obj_spr = obj.sprite.get_current_image()
-                obj_rect = obj_spr.get_rect(topleft=(tx, ty))
+                obj_rect = obj_spr.get_rect(center=(tx, ty))
                 obj.switch_sprites()
 
                 if key == selected_entity:
@@ -271,7 +278,7 @@ while running:
                 index += 1
         else:
             for index, tile in LEVEL_TILES.items():
-                tx, ty = SW - 16, (index + 1) * 16
+                tx, ty = SW - 24, (index + 1) * 16 - scroll_y
                 index_text = font.render(f"{index}", False, (255,255,255))
                 index_rect = index_text.get_rect(topleft=(tx-8, ty))
                 tile_rect = tile.get_rect(topleft=(tx, ty))
@@ -289,6 +296,7 @@ while running:
                 draw_dest.blit(tile, tile_rect)
                 draw_dest.blit(index_text, index_rect)
     else:
+        scroll_y = 0
         if tool_mode == "Pencil":
             if pygame.mouse.get_pressed()[0]:
                 Level.level[_y][_x] = current_sprite

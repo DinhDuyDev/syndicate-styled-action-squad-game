@@ -51,19 +51,22 @@ def load_level(game_map_object:Map, file_path):
     if file_path.exists():
         with open(file_path, "r") as f:
             geometry = []
-            load_data = [l.strip() for l in f]
+            load_data = [l.strip().split(":") for l in f]
+            loaded_data_dict = {l[0].strip():l[1].strip() for l in load_data}
+
             for i in range(settings.ver_cells):
                 row_ls = []
                 for j in range(settings.hor_cells):
-                    row_ls.append(int(load_data[0][i*settings.hor_cells+j]))
+                    row_ls.append(int(loaded_data_dict["MAP_GEOMETRY"][i*settings.hor_cells+j]))
                 geometry.append(row_ls)
 
             # Player location
-            location = load_data[1].split()
+            location = loaded_data_dict["PLAYER_SPAWN"].split()
 
             # Miscellaneous Objects
-            miscellaneous_objects = load_data[2] if len(load_data) >= 3 else ""
-            entities = load_data[3] if len(load_data) >= 4 else ""
+            miscellaneous_objects = loaded_data_dict["MISCELLANEOUS"] if loaded_data_dict["MISCELLANEOUS"] != "" else ""
+            entities = loaded_data_dict["ENTITIES"] if loaded_data_dict["ENTITIES"] != "" else ""
+
             new_map = Level(
                 geometry,
                 float(location[0]),
@@ -77,6 +80,6 @@ def load_level(game_map_object:Map, file_path):
 
 GameMap = Map()
 load_level(GameMap, "levels/hotel.dmf")
-# load_level(GameMap, "levels/prison.dmf")
+load_level(GameMap, "levels/prison.dmf")
 # load_level(GameMap, "levels/4room.dmf")
 # load_level(GameMap, "levels/only_crates.dmf")

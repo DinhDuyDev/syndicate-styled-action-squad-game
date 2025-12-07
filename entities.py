@@ -95,7 +95,7 @@ class SquadMan:
         self.knock_back_strength = 0
         self.knock_back_dir = 0
 
-        self.current_weapon_name = "Bar"
+        self.current_weapon_name = "Shotgun"
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
@@ -114,6 +114,7 @@ class SquadMan:
         return self.x, self.y
 
     def action(self, m:list[list[int]]):
+        self.knock_back_strength *= 0.9
         spd_modifier = (2-SquadMan.nums_active()/4) * 1.25
         if len(self.move_path) == 0:
             if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 2:
@@ -146,7 +147,7 @@ class SquadMan:
 
             # If the squadder is the front man
             if self.cooldown_steps >= 30 * (1/spd_modifier) and SquadMan.squad_list.index(self) == 0:
-                effects.SoundSource(self.x, self.y, 10*(5/spd_modifier**2)) # Also used to make noises
+                effects.SoundSource(self.x, self.y, 10*(6/spd_modifier**2)) # Also used to make noises
                 self.cooldown_steps = 0
             else:
                 self.cooldown_steps += 1
@@ -154,6 +155,10 @@ class SquadMan:
         # self.hp = 10000
     def render(self, dest:pygame.Surface, x, y):
         # Being used
+        vec_x = math.cos(math.radians(self.knock_back_dir)) * self.knock_back_strength
+        vec_y = math.sin(math.radians(self.knock_back_dir)) * self.knock_back_strength
+        x += vec_x
+        y -= vec_y
         self.switch_sprites()
         dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)))
         dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
@@ -204,9 +209,15 @@ class SquadMan:
                     self.sprite.set_image_index(d)
                     self.focused = False
                     shake_factor = total_damage / 20
-                    camera.Camera.activeCam.screen_shake(shake_factor * 3)
+                    # camera.Camera.activeCam.screen_shake(shake_factor * 3)
+
+                    self.knockback((total_damage/50)**0.8+random.randint(1,2), direction+180)
 
                 self.cooldown = 0
+
+    def knockback(self, strength, knock_dir):
+        self.knock_back_dir = knock_dir
+        self.knock_back_strength = strength
 
     def get_weapon(self):
         return self.current_weapon
