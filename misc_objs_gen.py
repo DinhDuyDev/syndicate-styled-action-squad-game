@@ -10,7 +10,9 @@ def misc_objects_generator(): # CAN ONLY BE USED IF A VIDEO MODE HAS BEEN SET
             "WeaponCrateBroken": decorations.Crate((0, 0), is_wep_crate=True, destroyed=True),
             "Barrel": decorations.Barrel((0, 0)),
             "BarrelBroken": decorations.Barrel((0, 0), destroyed=True),
-            "Skull": decorations.Skull((0, 0))
+            "Skull": decorations.Skull((0, 0)),
+            "TableRand": decorations.Table((0, 0)),
+            "TableToppled": decorations.TableToppled((0, 0)),
         }
         return misc_objs_dict
     return AssertionError("PYGAME DISPLAY WAS NOT INITIALIZED")

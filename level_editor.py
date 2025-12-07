@@ -118,15 +118,16 @@ def save_level(lv:list[list[int]], pth):
             f.writelines(write_data)
 
 def load_level(pth):
-    setup_level(Level.level, LEVEL_WIDTH, LEVEL_HEIGHT)
     lvl_pth = Path(pth)
     if lvl_pth.exists():
+        setup_level(Level.level, LEVEL_WIDTH, LEVEL_HEIGHT)
         with open(pth, 'r') as f:
             # Format
             # 0: level data
             # 1: Player spawn coordinates
             # 2: All shits
             misc_objs.clear()
+            ent_list.clear()
             load_data = [l.strip() for l in f]
             for row in range(LEVEL_HEIGHT):
                 for cell in range(LEVEL_WIDTH):
@@ -254,13 +255,14 @@ while running:
                 tx, ty = SW - 16, (index + 1) * 16
                 obj_spr = obj.sprite.get_current_image()
                 obj_rect = obj_spr.get_rect(topleft=(tx, ty))
+                obj.switch_sprites()
 
                 if key == selected_entity:
                     pygame.draw.rect(draw_dest, (0, 255, 0), (tx - 3, ty - 3, 16, 16))
 
                 if obj_rect.collidepoint(mx, my):
                     if pygame.mouse.get_pressed()[0]:
-                        selected_object = key
+                        selected_entity = key
                         pygame.draw.rect(draw_dest, (255, 0, 255), (tx - 3, ty - 3, 16, 16), width=1)
                     else:
                         pygame.draw.rect(draw_dest, (255, 0, 255), (tx - 3, ty - 3, 16, 16))

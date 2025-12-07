@@ -176,9 +176,9 @@ while running:
         _y = c_y * settings.cell_dimension
         ent.action(LoadedScene.loaded_map)
         ent.check_death(LoadedScene.all_entities)
-        # state = font.render(f"{ent.state}", False, (255, 0, 0))
-        # state_rect = state.get_rect(center=(ent.x-_x, ent.y-_y-16))
-        # draw_dest.blit(state, state_rect)
+        state = font.render(f"{ent.state}", False, (255, 0, 0))
+        state_rect = state.get_rect(center=(ent.x-_x, ent.y-_y-16))
+        draw_dest.blit(state, state_rect)
 
     # Bullets
     for bullet in Bullet.PlayerBullet.all_bullets:

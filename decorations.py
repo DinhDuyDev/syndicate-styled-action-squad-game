@@ -1,3 +1,5 @@
+import math
+
 import Sprites
 import pygame
 import random
@@ -9,7 +11,7 @@ import random
 # xy(): tuple of x and y
 # render(dest, x, y): draws on the specified surface
 # __copy__(): to copy itself
-# __repr__(): Code representation
+# __repr__(): Code representation so that the map editor can at least read.
 # All significant attributes necessary for object initialization must be available on the constructor
 class Crate:
     def __init__(self, loc:tuple[int, int], is_wep_crate=False, destroyed=False):
@@ -166,6 +168,141 @@ class Skull:
     def __eq__(self, other):
         return self.y == other.y
 
+
+class Table:
+    def __init__(self, loc:tuple[int, int], angle=-1):
+        self.x, self.y = loc
+        self.sprite = Sprites.Sprite(
+            (
+                # Okay
+                ("sprites/table_spr/table_top.png", "sprites/table_spr/table_leg.png")
+            )
+        )
+        self.repr_name = ""
+        self.angle = random.randint(0, 360) if angle == -1 else angle
+        self.random_angle = True if angle == -1 else False
+
+    def set_xy(self, loc:tuple[float, float]):
+        self.x, self.y = loc
+
+    def xy(self):
+        return self.x, self.y
+
+    def render(self, dest:pygame.Surface, x, y):
+        # self.angle += 0.5
+        top_spr = self.sprite.get_image_at(0) #if not self.destroyed else self.sprite.get_image_at(2)
+        leg_spr = self.sprite.get_image_at(1) #if not self.destroyed else self.sprite.get_image_at(3)
+
+        top_spr = pygame.transform.rotate(top_spr, self.angle)
+        leg_spr = pygame.transform.rotate(leg_spr, self.angle)
+
+        # Legs
+        for i in range(1, 7):
+            dest.blit(leg_spr, leg_spr.get_rect(center=(x, y-2.5+i)))
+
+        # Draw Top later
+        dest.blit(top_spr, top_spr.get_rect(center=(x, y - 2.5)))
+
+
+    def __copy__(self):
+        return_obj = Table((0, 0), angle=random.randint(0, 360) if self.random_angle else self.angle)
+        return_obj.repr_name = self.repr_name
+        return return_obj
+
+    def __repr__(self):
+        return f"{self.repr_name}->({self.x}, {self.y})"
+
+    def __lt__(self, other):
+        return self.y < other.y
+
+    def __gt__(self, other):
+        return self.y > other.y
+
+    def __eq__(self, other):
+        return self.y == other.y
+
+
+class TableToppled:
+    def __init__(self, loc:tuple[int, int], angle=-1):
+        self.x, self.y = loc
+        self.sprite = Sprites.Sprite(
+            (
+                # Okay
+                ("sprites/table_spr/table_top_toppled_border.png", "sprites/table_spr/table_top_toppled_inner.png"
+                 , "sprites/table_spr/table_toppled_leg.png")
+            )
+        )
+        self.repr_name = ""
+        self.angle = random.randint(0, 360) if angle == -1 else angle
+        self.random_angle = True if angle == -1 else False
+
+    def set_xy(self, loc:tuple[float, float]):
+        self.x, self.y = loc
+
+    def xy(self):
+        return self.x, self.y
+
+    def render(self, dest:pygame.Surface, x, y):
+        # self.angle += 0.5
+        top_border_spr = self.sprite.get_image_at(0) #if not self.destroyed else self.sprite.get_image_at(2)
+        top_inner_spr = self.sprite.get_image_at(1) #if not self.destroyed else self.sprite.get_image_at(2)
+        leg_spr = self.sprite.get_image_at(2) #if not self.destroyed else self.sprite.get_image_at(3)
+
+        top_border_spr = pygame.transform.rotate(top_border_spr, self.angle)
+        top_inner_spr = pygame.transform.rotate(top_inner_spr, self.angle)
+
+        # Legs
+        ## TOP LEGS
+        def draw_legs():
+            top_left = (math.cos(math.radians(self.angle)) * -12, math.sin(math.radians(self.angle)) * -12)
+            top_right = (math.cos(math.radians(self.angle)) * 12, math.sin(math.radians(self.angle)) * 12)
+
+            for i in range(12):
+                vec_x = math.cos(math.radians(self.angle + 90))*i
+                vec_y = math.sin(math.radians(self.angle + 90))*i
+
+                dest.blit(leg_spr, leg_spr.get_rect(center=(x + vec_x + top_left[0], y - vec_y + 2.5 - top_left[1])))
+                dest.blit(leg_spr, leg_spr.get_rect(center=(x + vec_x + top_right[0], y - vec_y + 2.5 - top_right[1])))
+
+                dest.blit(leg_spr, leg_spr.get_rect(center=(x+vec_x+top_left[0], y-vec_y-2.5-top_left[1])))
+                dest.blit(leg_spr, leg_spr.get_rect(center=(x+vec_x+top_right[0], y-vec_y-2.5-top_right[1])))
+
+
+        # Drawing top
+        def draw_top():
+            dest.blit(top_border_spr, top_border_spr.get_rect(center=(x, y - 3.5)))
+            top_height = 7
+            for i in range(1, top_height):
+                dest.blit(top_inner_spr, top_inner_spr.get_rect(center=(x, y - 3.5+i)))
+            dest.blit(top_border_spr, top_border_spr.get_rect(center=(x, y - 3.5 + top_height+1)))
+
+            # pygame.draw.rect(dest, (255, 0, 0), (x-2, y-2, 4, 4))
+            # pygame.draw.line(dest, (0, 255, 0), (x, y),
+            #                  (x+math.cos(math.radians(self.angle))*64,y-math.sin(math.radians(self.angle))*64))
+
+        if self.angle < 180:
+            draw_legs()
+            draw_top()
+        else:
+            draw_top()
+            draw_legs()
+
+    def __copy__(self):
+        return_obj = TableToppled((0, 0), angle=random.randint(0, 360) if self.random_angle else self.angle)
+        return_obj.repr_name = self.repr_name
+        return return_obj
+
+    def __repr__(self):
+        return f"{self.repr_name}->({self.x}, {self.y})"
+
+    def __lt__(self, other):
+        return self.y < other.y
+
+    def __gt__(self, other):
+        return self.y > other.y
+
+    def __eq__(self, other):
+        return self.y == other.y
 
 # All the types of decoration (just to make sure when I code the completion doesn't freak out)
 all_decoration_types = Crate|Barrel|Skull

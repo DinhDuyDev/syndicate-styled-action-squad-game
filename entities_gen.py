@@ -4,7 +4,10 @@ import copy
 def entities_generator(): # CAN ONLY BE USED IF A VIDEO MODE HAS BEEN SET
     if pygame.display.get_init():
         misc_objs_dict = {
-            "EnemyMobsterPistol": entities.EnemyMobster((0, 0))
+            "EnemyMobsterPistol": entities.EnemyMobster((0, 0),weapon_type="Pistol"),
+            "EnemyMobsterShotgun": entities.EnemyMobster((0, 0),weapon_type="Shotgun"),
+            "EnemyMobsterThompson": entities.EnemyMobster((0, 0),weapon_type="Thompson"),
+            "EnemyMobsterBar": entities.EnemyMobster((0, 0),weapon_type="Bar")
         }
         return misc_objs_dict
     return AssertionError("PYGAME DISPLAY WAS NOT INITIALIZED")

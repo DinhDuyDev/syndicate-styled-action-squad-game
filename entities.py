@@ -95,7 +95,7 @@ class SquadMan:
         self.knock_back_strength = 0
         self.knock_back_dir = 0
 
-        self.current_weapon_name = "Shotgun"
+        self.current_weapon_name = "Bar"
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
@@ -154,6 +154,7 @@ class SquadMan:
         # self.hp = 10000
     def render(self, dest:pygame.Surface, x, y):
         # Being used
+        self.switch_sprites()
         dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)))
         dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
         if self.being_used:
@@ -178,7 +179,6 @@ class SquadMan:
             self.sprite = self.bar_sprite
 
     def firing(self, direction):
-        self.switch_sprites()
         self.cooldown += 1
         if pygame.key.get_pressed()[pygame.K_e] or pygame.mouse.get_pressed()[2]:
             if self.cooldown > self.get_weapon().fire_cooldown:
@@ -278,7 +278,7 @@ class EnemyMobster:
             )
         )
 
-        self.current_weapon_name = random.choice(["Pistol", "Shotgun", "Thompson", "Bar"])
+        self.current_weapon_name = weapon_type
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
         self.frames = 0
         self.move_path = []
@@ -417,8 +417,6 @@ class EnemyMobster:
                 self.sound_heard = None
 
         # elif self.state == "WAIT_AMBUSH":
-
-
         self.movement(m)
 
     def set_speed_factor(self, spd:float):
@@ -511,6 +509,7 @@ class EnemyMobster:
             self.sprite = self.bar_sprite
 
     def render(self, dest:pygame.Surface, x, y):
+        self.switch_sprites()
         dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)), None)
         dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
         pygame.draw.rect(dest, (255, 0, 0), (x-5, y-9, 10, 2))
