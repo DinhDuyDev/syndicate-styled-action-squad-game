@@ -19,6 +19,6 @@ WEAPONS_REF = {
     "Pistol": Weapons("Colt 1911", 15, 25, 1, 4, 7, speed_modifier=1.5),
     "Revolver": Weapons("Magnum", 60, 100, 1, 1, 7,lives=2, create_ray=True, speed_modifier=1.5),
     "Shotgun": Weapons("RMT 970",  60, 10, 15, 7, 6, speed_modifier=0.95),
-    "Thompson": Weapons("Thompson",  4, 8, 1, 6, 50, speed_modifier=0.8), # damage 8
+    "Thompson": Weapons("Thompson",  4, 12, 1, 6, 50, speed_modifier=0.8), # damage 8
     "Bar": Weapons("Bar", 12, 35, 1, 4, 7, lives=2, create_ray=True, speed_modifier=0.6)
 }

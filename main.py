@@ -42,7 +42,7 @@ center_scope = False
 ### ALL THINGS FROM THE LOADED SCENES ###
 #########################################
 class LoadedScene:
-    loaded_map: list[list[int]] = None
+    loaded_map: list[list[int]]|None = None
     current_map = None
 
     # Game Miscellaneous Objects
@@ -181,6 +181,7 @@ while running:
     #
 
     # Squad
+    entities.SquadMan.make_footsteps()
     for sq in entities.SquadMan.squad_list:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
