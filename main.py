@@ -78,7 +78,7 @@ def load_level(index: int):
 # load_level(0)
 # load_level(1)
 
-load_level(1)
+load_level(0)
 print(LoadedScene.all_entities)
 spawn_xy = LoadedScene.current_map.get_spawn_point()
 

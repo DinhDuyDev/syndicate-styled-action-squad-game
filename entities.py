@@ -107,7 +107,7 @@ class SquadMan:
         self.knock_back_strength = 0
         self.knock_back_dir = 0
 
-        self.current_weapon_name = "Thompson"
+        self.current_weapon_name = "Shotgun"
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
@@ -211,7 +211,7 @@ class SquadMan:
                         _inaccuracies = wep.inaccuracy
                         _lives = wep.lives
                         _create_ray = wep.create_ray
-                        Bullet.PlayerBullet(self.xy()[0]+vec_x, self.xy()[1]-vec_y, md_dir, self, damage=_damage, deviation=_inaccuracies,lives=_lives,create_ray=True)
+                        Bullet.PlayerBullet(self.xy()[0]+vec_x, self.xy()[1]-vec_y, md_dir, self, damage=_damage, deviation=_inaccuracies,lives=_lives,create_ray=_create_ray)
 
                     effects.SoundSource(self.xy()[0], self.xy()[1], (total_damage / 20) * 30)
                     effects.MuzzleFlash(self.xy()[0]+vec_x, self.xy()[1]-vec_y)
@@ -429,16 +429,12 @@ class EnemyMobster:
 
         elif self.state == "ATTACK":
             # Move around a little
-            __search_range = 15
-            if len(self.move_path) == 0:
-                self.move_forward_a_little(m)
-                self.is_firing = True
 
             __d = utilityfuncs.point_direction(self.x, self.y, self.target_x, self.target_y)
             if self.seeing_enemy(SquadMan.squad_list, m):
                 self.sprite.set_image_index(int(__d / 45))
                 self.firing(__d)
-                # self.stop_moving()
+                self.stop_moving()
             else:
                 self.is_firing = False
                 self.state = "MOVE_TO_WHERE_LAST_SEEN_ENEMY" # when going to where enemy is last seen, do not have an empty move path
