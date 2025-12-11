@@ -128,7 +128,7 @@ while running:
                 _y = c_y * settings.cell_dimension
                 # Interacting with the player squad
                 for sq in entities.SquadMan.squad_list:
-                    sq_rect = pygame.Rect(sq.x-2-_x, sq.y-9-_y, 4, 4)#sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
+                    sq_rect = pygame.Rect(sq.x-4-_x, sq.y-9-_y, 8, 16)#sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
                     if sq_rect.collidepoint(mx, my):
                         print("God given")
                         clicking_on_player = True
@@ -192,7 +192,7 @@ while running:
         sq.action(LoadedScene.loaded_map)
         sq.firing(md_dir)
         sq.check_death()
-        # health_text = font.render(str(sq.hp), False, (255, 0, 0))
+        # health_text = font.render(str(sq.pain), False, (255, 0, 0))
         # health_rect = health_text.get_rect(center=(sq.xy()[0]-_x, sq.xy()[1]-6-_y))
         # draw_dest.blit(health_text, health_rect)
 
@@ -203,9 +203,9 @@ while running:
         _y = c_y * settings.cell_dimension
         ent.action(LoadedScene.loaded_map)
         ent.check_death(LoadedScene.all_entities)
-        state = font.render(f"{ent.state}", False, (255, 0, 0))
-        state_rect = state.get_rect(center=(ent.x-_x, ent.y-_y-16))
-        draw_dest.blit(state, state_rect)
+        # state = font.render(f"{ent.pain}", False, (255, 0, 0))
+        # state_rect = state.get_rect(center=(ent.x-_x, ent.y-_y-16))
+        # draw_dest.blit(state, state_rect)
 
     # Bullets
     for bullet in Bullet.PlayerBullet.all_bullets:
@@ -218,7 +218,7 @@ while running:
     for eff in effects.all_effects:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
-        eff.render(draw_dest, _x, _y)
+        eff.render(draw_dest, eff.x-_x, eff.y-_y)
 
     # Sounds
     for snd in effects.SoundSource.all_sounds_sources:

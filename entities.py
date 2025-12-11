@@ -91,13 +91,23 @@ class SquadMan:
         self.shotgun_sprite = all_sprs["Shotgun"]
         self.thompson_sprite = all_sprs["Thompson"]
         self.bar_sprite = all_sprs["Bar"]
-        self.leg_sprite = Sprites.Sprite(
+        self.leg_normal_sprite = Sprites.Sprite(
             (
                 "sprites/mob_spr/mobster_leg_leftup.png",
                 "sprites/mob_spr/mobster_leg_rightup.png",
                 "sprites/mob_spr/mobster_leg_normal.png"
             )
         )
+        self.leg_crouch_sprite = Sprites.Sprite(
+            (
+                "sprites/mob_spr/mobster_leg_crouching_left.png",
+                "sprites/mob_spr/mobster_leg_crouching_right.png",
+                "sprites/mob_spr/mobster_leg_crouching_right.png",
+            )
+        )
+        self.leg_sprite = self.leg_normal_sprite
+
+        self.crouching = False # Crouching enemy
         self.sprite = self.pistol_sprite
         self.frames = 0
         self.move_path = []
@@ -107,7 +117,7 @@ class SquadMan:
         self.knock_back_strength = 0
         self.knock_back_dir = 0
 
-        self.current_weapon_name = "Shotgun"
+        self.current_weapon_name = random.choice(["Shotgun", "Revolver", "Pistol", "Thompson"])
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
@@ -168,6 +178,7 @@ class SquadMan:
         vec_y = math.sin(math.radians(self.knock_back_dir)) * self.knock_back_strength
         x += vec_x
         y -= vec_y
+
         self.switch_sprites()
         dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)))
         dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
@@ -177,6 +188,9 @@ class SquadMan:
             pygame.draw.rect(dest, (255, 0, 255), (x-1, y-7, 2, 2))
         pygame.draw.rect(dest, (255, 0, 0), (x - 5, y - 9, 10, 2))
         pygame.draw.rect(dest, (0, 255, 0), (x - 5, y - 9, 10 * self.hp / 100, 2))
+
+    def take_damage(self, amount, source=None):
+        self.hp -= amount
 
     def check_death(self):
         if self.hp < 0:
@@ -192,6 +206,11 @@ class SquadMan:
         elif self.current_weapon_name == "Bar":
             self.sprite = self.bar_sprite
 
+        if self.crouching:
+            self.leg_sprite = self.leg_crouch_sprite
+        else:
+            self.leg_sprite = self.leg_normal_sprite
+
     def firing(self, direction):
         self.cooldown += 1
         if pygame.key.get_pressed()[pygame.K_e] or pygame.mouse.get_pressed()[2]:
@@ -199,7 +218,7 @@ class SquadMan:
                 base_ref = WEAPONS_REF["Pistol"].damage
                 total_damage = base_ref
                 if self.being_used:
-                    md_dir = direction
+                    md_dir = direction # Pain and Flinch
                     d = md_dir//45
                     vec_x = math.cos(math.radians(d*45)) * 8
                     vec_y = math.sin(math.radians(d*45)) * 8
@@ -210,7 +229,7 @@ class SquadMan:
                         total_damage += _damage
                         _inaccuracies = wep.inaccuracy
                         _lives = wep.lives
-                        _create_ray = wep.create_ray
+                        _create_ray = True#wep.create_ray
                         Bullet.PlayerBullet(self.xy()[0]+vec_x, self.xy()[1]-vec_y, md_dir, self, damage=_damage, deviation=_inaccuracies,lives=_lives,create_ray=_create_ray)
 
                     effects.SoundSource(self.xy()[0], self.xy()[1], (total_damage / 20) * 30)
@@ -282,6 +301,9 @@ class EnemyMobster:
             "SEARCH",
         }
 
+        self.inaccuracy_multiplier = 1
+        self.surprise_factor = 3
+
         all_sprs = gen_all_sprites()
 
         self.pistol_sprite = all_sprs["Pistol"]
@@ -314,6 +336,7 @@ class EnemyMobster:
 
         self.cooldown = 0
         self.is_firing = False
+
 
         # The sound heard by the enemy
         self.sound_heard:effects.SoundSource|None = None
@@ -368,6 +391,7 @@ class EnemyMobster:
                 self.state = "ATTACK"
                 self.move_path.clear()
                 self.cooldown = -20
+                self.inaccuracy_multiplier = self.surprise_factor
                 self.clear_variable_space()
 
             self.variable_space[0] += 1
@@ -423,13 +447,14 @@ class EnemyMobster:
             # Seeing player then destroy them
             if self.seeing_enemy(SquadMan.squad_list, m):
                 self.state = "ATTACK"
+                self.inaccuracy_multiplier = self.surprise_factor
                 self.move_path.clear()
                 self.cooldown = 1000 # Already expected the enemy
                 self.clear_variable_space()
 
         elif self.state == "ATTACK":
             # Move around a little
-
+            self.inaccuracy_multiplier = max(self.inaccuracy_multiplier * 0.9, 1)
             __d = utilityfuncs.point_direction(self.x, self.y, self.target_x, self.target_y)
             if self.seeing_enemy(SquadMan.squad_list, m):
                 self.sprite.set_image_index(int(__d / 45))
@@ -448,11 +473,10 @@ class EnemyMobster:
 
     def look_around(self, _range):
         self.front_direction += random.choice([-_range, _range])
-        print(self.front_direction, end=", ")
         self.front_direction = max(min(self.front_direction, 360), 0)
         if self.front_direction >= 360:
             self.front_direction = 0
-        print(self.front_direction)
+
     def move_forward_a_little(self, m:list[list[int]], search_range=16):
         __x = self.x + math.cos(math.radians(self.front_direction)) * search_range
         __y = self.y - math.sin(math.radians(self.front_direction)) * search_range
@@ -477,12 +501,17 @@ class EnemyMobster:
             vec_y = math.sin(math.radians(d * 45)) * 8
 
             wep = self.get_weapon()
+            inaccuracy_mult = int(max(self.inaccuracy_multiplier, 1))
+            if wep.name == "Shotgun": # If shotgun, then reduce accuracy
+                inaccuracy_mult = 1
+            print(inaccuracy_mult)
+
             for i in range(wep.pellets):
                 _damage = wep.damage
                 total_damage += _damage
-                _inaccuracies = wep.inaccuracy
+                _inaccuracies = wep.inaccuracy * inaccuracy_mult
                 _lives = wep.lives
-                _create_ray = wep.create_ray
+                _create_ray = True#wep.create_ray
                 Bullet.PlayerBullet(self.xy()[0] + vec_x, self.xy()[1] - vec_y, md_dir, self, damage=_damage,
                                     deviation=_inaccuracies, lives=_lives, create_ray=_create_ray)
 
@@ -558,6 +587,12 @@ class EnemyMobster:
         dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
         pygame.draw.rect(dest, (255, 0, 0), (x-5, y-9, 10, 2))
         pygame.draw.rect(dest, (0, 255, 0), (x-5, y-9, 10*self.hp/100, 2))
+
+    def take_damage(self, amount, source):
+        self.hp -= amount
+        # if self.state == "IDLE" or self.state == "MKMENT":
+        self.front_direction = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
+        # if utilityfuncs.line_of_sight()
 
     def check_death(self, ref:list):
         if self.hp <= 0:

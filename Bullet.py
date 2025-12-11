@@ -52,7 +52,7 @@ class PlayerBullet:
                     self.range = -1000
             self.range -= 1
         for hit in self.hit_targets:
-            hit.hp -= self.damage
+            hit.take_damage(self.damage, self.spawner)
 
         if self.create_ray:
             effects.Ray(self.x_start, self.y_start, self.x, self.y)

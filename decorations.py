@@ -197,7 +197,7 @@ class Table:
         leg_spr = pygame.transform.rotate(leg_spr, self.angle)
 
         # Legs
-        for i in range(1, 7):
+        for i in range(1, 5):
             dest.blit(leg_spr, leg_spr.get_rect(center=(x, y-2.5+i)))
 
         # Draw Top later
@@ -257,7 +257,7 @@ class TableToppled:
             top_left = (math.cos(math.radians(self.angle)) * -12, math.sin(math.radians(self.angle)) * -12)
             top_right = (math.cos(math.radians(self.angle)) * 12, math.sin(math.radians(self.angle)) * 12)
 
-            for i in range(12):
+            for i in range(8):
                 vec_x = math.cos(math.radians(self.angle + 90))*i
                 vec_y = math.sin(math.radians(self.angle + 90))*i
 

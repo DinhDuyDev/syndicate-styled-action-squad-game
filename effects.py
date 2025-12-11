@@ -1,6 +1,7 @@
 import random
 import pygame
 import Sprites
+import utilityfuncs
 
 
 class MuzzleFlash:
@@ -17,7 +18,7 @@ class MuzzleFlash:
 
     def render(self, dest: pygame.Surface, x, y):
         surf = pygame.transform.rotate(self.sprite.get_current_image(), random.randint(0, 360))
-        rect = surf.get_rect(center=(self.x-x,self.y-y))
+        rect = surf.get_rect(center=(x,y))
         dest.blit(surf, rect)
         all_effects.remove(self)
 
@@ -39,7 +40,7 @@ class BulletHole:
 
     def render(self, dest:pygame.Surface, x,y):
         surf = pygame.transform.rotate(self.sprite.get_current_image(), self.angle)
-        rect = surf.get_rect(center=(self.x-x, self.y-y))
+        rect = surf.get_rect(center=(x, y))
         dest.blit(surf, rect)
 
     def get_hitbox(self):
@@ -48,14 +49,16 @@ class BulletHole:
 
 class Ray:
     def __init__(self, x_start, y_start, x_end, y_end, color=(255,255,255)):
-        self.x_start = x_start
-        self.y_start = y_start
+        self.x = x_start
+        self.y = y_start
         self.x_end   = x_end
         self.y_end   = y_end
         self.color = color
         all_effects.append(self)
     def render(self, dest:pygame.Surface, x,y):
-        pygame.draw.line(dest, self.color, (self.x_start-x, self.y_start-y), (self.x_end-x, self.y_end-y), width=2)
+        dx = self.x_end - self.x
+        dy = self.y_end - self.y
+        pygame.draw.line(dest, self.color, (x, y), (x+dx, y+dy), width=2)
         all_effects.remove(self)
 
 effect_types = MuzzleFlash|Ray|BulletHole

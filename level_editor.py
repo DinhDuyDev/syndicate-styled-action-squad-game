@@ -26,7 +26,7 @@ settings.zoom = 1
 LEVEL_WIDTH = settings.hor_cells
 LEVEL_HEIGHT = settings.ver_cells
 c_dimensions = settings.cell_dimension
-command = "levels/4room.dmf=load"
+command = "levels/barricaded.dmf=load"
 using_commands = False
 
 class Level:
