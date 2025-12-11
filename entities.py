@@ -11,6 +11,7 @@ import Weapons
 import Bullet
 import effects
 import camera
+import deletor
 
 WEAPONS_REF = Weapons.WEAPONS_REF
 
@@ -136,6 +137,7 @@ class SquadMan:
         return self.x, self.y
 
     def action(self, m:list[list[int]]):
+        self.hp = 115
         if self.knock_back_strength >= 0.001:
             self.knock_back_strength *= 0.9
             self.leg_sprite.set_image_speed(4/30)
@@ -194,7 +196,10 @@ class SquadMan:
 
     def check_death(self):
         if self.hp < 0:
-            SquadMan.squad_list.remove(self)
+            self.destroy()
+
+    def destroy(self):
+        deletor.Deleter.request_delete(self, SquadMan.squad_list)
 
     def switch_sprites(self):
         if self.current_weapon_name == "Pistol" or self.current_weapon_name == "Revolver":
@@ -434,12 +439,6 @@ class EnemyMobster:
                         # Freakout cooldown
                         self.variable_space[2] += 20
                         __search_range = 20
-                        # __x = self.x+random.randrange(-__search_range, __search_range)
-                        # __y = self.y+random.randrange(-__search_range, __search_range)
-                        # while m[int(__y/settings.cell_dimension)][int(__x/settings.cell_dimension)] != 0:
-                        #     __x = self.x + random.randrange(-__search_range, __search_range)
-                        #     __y = self.y + random.randrange(-__search_range, __search_range)
-                        # self.set_dest(__x, __y, m)
                         self.look_around(45)
                         self.move_forward_a_little(m, __search_range)
                         self.variable_space[1] = 0
@@ -590,15 +589,17 @@ class EnemyMobster:
 
     def take_damage(self, amount, source):
         self.hp -= amount
-        # if self.state == "IDLE" or self.state == "MKMENT":
         self.front_direction = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
-        # if utilityfuncs.line_of_sight()
 
-    def check_death(self, ref:list):
+    def check_death(self, ref):
         if self.hp <= 0:
-            EnemyMobster.EnemyList.remove(self)
-            ref.remove(self)
-    #
+            self.destroy(ref)
+
+    def destroy(self, *additional_refs):
+        for r in additional_refs:
+            deletor.Deleter.request_delete(self, r)
+        deletor.Deleter.request_delete(self, EnemyMobster.EnemyList)
+
     def __copy__(self):
         return EnemyMobster((self.x, self.y), exclude=self.exclude, weapon_type=self.current_weapon_name)
 

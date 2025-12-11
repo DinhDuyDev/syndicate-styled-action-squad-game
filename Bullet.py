@@ -1,4 +1,6 @@
 import math
+
+import deletor
 import settings
 import random
 import effects
@@ -56,4 +58,4 @@ class PlayerBullet:
 
         if self.create_ray:
             effects.Ray(self.x_start, self.y_start, self.x, self.y)
-        PlayerBullet.all_bullets.remove(self)
+        deletor.Deleter.request_delete(self, PlayerBullet.all_bullets)

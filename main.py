@@ -1,5 +1,8 @@
 # Importing all the library in
 import math
+import os
+import weakref
+import psutil
 import pygame
 import decorations
 import entities_gen
@@ -14,6 +17,7 @@ import camera
 import misc_objs_gen
 import Bullet
 import effects
+import deletor
 
 ###########################
 # Initializing everything #
@@ -72,11 +76,9 @@ def load_level(index: int):
     for x in loaded_miscellaneous:
         LoadedScene.all_miscellaneous_objects.append(misc_objs_gen.get_miscellaneous_objects(x))
 
-    for x in loaded_entities:  # This is just the enemies by the
+    for x in loaded_entities:  # All potential enemies that might
         LoadedScene.all_entities.append(entities_gen.get_entities(x))
 
-# load_level(0)
-# load_level(1)
 
 load_level(0)
 print(LoadedScene.all_entities)
@@ -93,6 +95,16 @@ entities.move_squad(spawn_xy[0], spawn_xy[1], LoadedScene.loaded_map)
 gameCamera = camera.Camera()
 gameCamera.offset_x = int((spawn_xy[0]-settings.WINDOW_WIDTH/(2*settings.zoom))/settings.cell_dimension)
 gameCamera.offset_y = int((spawn_xy[1]-settings.WINDOW_HEIGHT/(2*settings.zoom))/settings.cell_dimension)
+
+# enemy_rf = weakref.ref(LoadedScene.all_entities[0])
+# print(enemy_rf)
+
+# Memory
+process = psutil.Process()
+
+all_enemy_refs = [
+    weakref.ref(e) for e in LoadedScene.all_entities
+]
 
 # Game Tiles
 LEVEL_TILES = tiles.get_tiles()
@@ -210,15 +222,15 @@ while running:
     # Bullets
     for bullet in Bullet.PlayerBullet.all_bullets:
         if isinstance(bullet.spawner, entities.SquadMan):
-            bullet.work(LoadedScene.loaded_map, entities.EnemyMobster.EnemyList)
+            bullet.work(LoadedScene.loaded_map, LoadedScene.all_entities)
         else:
             bullet.work(LoadedScene.loaded_map, entities.SquadMan.squad_list)
 
     # Effects
-    for eff in effects.all_effects:
-        _x = c_x * settings.cell_dimension
-        _y = c_y * settings.cell_dimension
-        eff.render(draw_dest, eff.x-_x, eff.y-_y)
+    # for eff in effects.all_effects:
+    #     _x = c_x * settings.cell_dimension
+    #     _y = c_y * settings.cell_dimension
+    #     eff.render(draw_dest, eff.x-_x, eff.y-_y)
 
     # Sounds
     for snd in effects.SoundSource.all_sounds_sources:
@@ -227,8 +239,11 @@ while running:
         # For ALL ENEMIES
         for enemy in entities.EnemyMobster.EnemyList:
             enemy.hear_sound(snd)
-        pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
+        # pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
         snd.destroy()
+
+    # Anything requesting to be deleted will be deleted here
+    deletor.Deleter.delete_all_requests()
 
     # Center
     if center_scope:
@@ -245,6 +260,19 @@ while running:
         pygame.draw.rect(draw_dest, (255, 0, 0), (0, 0, 32, 4))
         pygame.draw.rect(draw_dest, (0, 255, 0), (0, 0, 32 * (clock.get_fps()/60), 4))
 
+    # cpu_usage = psutil.cpu_percent(interval=1)
+    # ram = psutil.virtual_memory()
+    # ram_usage = ram.percent
+    # ram_used = round(ram.used / 1e9, 2)
+
+    memory_amount = font.render(f"{psutil.Process().memory_info().rss    / 1024 ** 2}", False, (255, 255, 255))
+    memory_rect = memory_amount.get_rect(topleft=(0, 0))
+    draw_dest.blit(memory_amount, memory_rect)
+
+    # usage_amounts = font.render(f"CPU%: {cpu_usage}, RAM_USG%: {ram_usage}, RAM_USED: {ram_used}", False, (255, 255, 255))
+    # usage_amounts_rect = usage_amounts.get_rect(topleft=(0, 64))
+    # draw_dest.blit(memory_amount, memory_rect)
+
     # Resizing Screem
     game_screen.screen.blit(pygame.transform.scale_by(pygame.transform.scale(draw_dest, game_screen.get_dimensions()), settings.zoom), (gameCamera.camera_shake_vector(), gameCamera.camera_shake_vector()))
 
@@ -252,3 +280,13 @@ while running:
     clock.tick(60)
 
 print(pygame.display.Info())
+for i in all_enemy_refs:
+    print(i)
+
+print("--------------------------------")
+print("performance report")
+print("CPU usage (%):", psutil.cpu_percent(interval=1))
+
+ram = psutil.virtual_memory()
+print("RAM usage (%):", ram.percent)
+print("RAM used (GB):", round(ram.used / 1e9, 2))

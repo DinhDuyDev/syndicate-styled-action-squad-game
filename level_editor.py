@@ -1,4 +1,5 @@
 import pygame
+import entities
 import settings
 import screen
 import camera
@@ -10,6 +11,9 @@ import decorations
 import copy
 import misc_objs_gen
 import entities_gen
+import deletor
+import weakref
+import gc
 
 pygame.init()
 pygame.font.init()
@@ -64,12 +68,12 @@ tool_mode = "Pencil"
 # Miscellaneous Objects (AKA decorators) and Entities Generator
 MISC_OBJECTS = misc_objs_gen.misc_objects_generator()
 ENTITY_OBJECTS = entities_gen.entities_generator()
-print(ENTITY_OBJECTS)
+# print(ENTITY_OBJECTS)
 selected_object = "NormalCrate"
 selected_entity = "EnemyMobsterPistol"
 mouse_held_down = False
 misc_objs:list[decorations.all_decoration_types] = []
-ent_list:list[decorations.all_decoration_types] = []
+ent_list:list = []
 
 scroll_y = 0
 
@@ -128,7 +132,7 @@ def load_level(pth):
             ent_list.clear()
             load_data = [l.strip().split(":") for l in f]
             loaded_data_dict = {l[0].strip():l[1].strip() for l in load_data}
-            print(loaded_data_dict)
+            # print(loaded_data_dict)
 
             for row in range(LEVEL_HEIGHT):
                 for cell in range(LEVEL_WIDTH):
@@ -144,8 +148,17 @@ def load_level(pth):
             all_entities = loaded_data_dict["ENTITIES"].split("//") if loaded_data_dict["ENTITIES"] != "" else ""
             for ent_o in all_entities:
                 ent_list.append(entities_gen.get_entities(ent_o))
+rf = None
+rf_misc = None
+
 # Running
 while running:
+    if len(ent_list) > 0 and rf is None:
+        rf = weakref.ref(ent_list[0])
+        print(rf)
+    if len(misc_objs) > 0 and rf_misc is None:
+        rf_misc = weakref.ref(misc_objs[0])
+        print(rf_misc)
     # Mouse and Camera coordinates
     c_x, c_y = CameraView.get_pos()
     c_x = int(c_x)
@@ -226,7 +239,6 @@ while running:
             if img_rect.collidepoint(mx, my):
                 if pygame.mouse.get_pressed()[0]:
                     tool_mode = tool_name
-                    print(tool_mode)
                     scroll_y = 0
                     pygame.draw.rect(draw_dest, (255, 0, 255), img_rect, width=1)
                 else:
@@ -334,7 +346,7 @@ while running:
                     o_rect = o.sprite.get_current_image().get_rect(center=(o.xy()[0], o.xy()[1]))
                     spawn_x, spawn_y = mx + _x, my + _y
                     if o_rect.collidepoint(spawn_x, spawn_y):
-                        misc_objs.remove(o)
+                        deletor.Deleter.request_delete(o, misc_objs)
 
             if pygame.mouse.get_pressed()[0] and not mouse_held_down:
                 spawn_x, spawn_y = mx + _x, my + _y
@@ -343,6 +355,7 @@ while running:
                 new_object.set_xy((spawn_x, spawn_y))
                 misc_objs.append(new_object)
                 mouse_held_down = True
+                new_object = None
 
         elif tool_mode == "Enemy_Place":
             _x = c_x * c_dimensions
@@ -356,13 +369,16 @@ while running:
                     o_rect = o.sprite.get_current_image().get_rect(center=(o.xy()[0], o.xy()[1]))
                     spawn_x, spawn_y = mx + _x, my + _y
                     if o_rect.collidepoint(spawn_x, spawn_y):
-                        ent_list.remove(o)
+                        o.destroy()
+                        deletor.Deleter.request_delete(o, ent_list)
             if pygame.mouse.get_pressed()[0] and not mouse_held_down:
+                print(entities.EnemyMobster.EnemyList)
                 spawn_x, spawn_y = mx + _x, my + _y
                 new_object = copy.copy(ENTITY_OBJECTS[selected_entity])
                 new_object.repr_name = selected_entity
                 new_object.set_xy((spawn_x, spawn_y))
                 ent_list.append(new_object)
+                new_object = None
                 mouse_held_down = True
 
     # Spawn Point
@@ -383,6 +399,9 @@ while running:
     for o in ent_list:
         o.render(draw_dest, o.xy()[0]-_x, o.xy()[1]-_y)
 
+    # Deletion of anything
+    deletor.Deleter.delete_all_requests()
+
     # Commands
     y_name = 330
     text_col = (255, 255, 255)
@@ -398,4 +417,10 @@ while running:
     pygame.display.flip()
     clock.tick(60)
 
-print(misc_objs)
+print(entities.EnemyMobster.EnemyList)
+for i in range(100):
+    gc.collect()
+print(len(entities.EnemyMobster.EnemyList))
+print(f"Enemy Mobster Weakref: {rf}")
+print(f"Misc Weakref: {rf_misc}")
+print(f"Enemy mobster references: {weakref.getweakrefcount(rf)}")

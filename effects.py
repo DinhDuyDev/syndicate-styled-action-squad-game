@@ -2,6 +2,7 @@ import random
 import pygame
 import Sprites
 import utilityfuncs
+import deletor
 
 
 class MuzzleFlash:
@@ -20,7 +21,7 @@ class MuzzleFlash:
         surf = pygame.transform.rotate(self.sprite.get_current_image(), random.randint(0, 360))
         rect = surf.get_rect(center=(x,y))
         dest.blit(surf, rect)
-        all_effects.remove(self)
+        deletor.Deleter.request_delete(self, all_effects)
 
 class BulletHole:
     all_bullet_holes:list = []
@@ -59,7 +60,7 @@ class Ray:
         dx = self.x_end - self.x
         dy = self.y_end - self.y
         pygame.draw.line(dest, self.color, (x, y), (x+dx, y+dy), width=2)
-        all_effects.remove(self)
+        deletor.Deleter.request_delete(self, all_effects)
 
 effect_types = MuzzleFlash|Ray|BulletHole
 all_effects:list[effect_types] = []
@@ -73,4 +74,4 @@ class SoundSource:
         self.num_alert = 3
         SoundSource.all_sounds_sources.append(self)
     def destroy(self):
-        SoundSource.all_sounds_sources.remove(self)
+        deletor.Deleter.request_delete(self, SoundSource.all_sounds_sources)
