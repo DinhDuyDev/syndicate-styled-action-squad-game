@@ -1,0 +1,6 @@
+This is a very strange level designer
+- It relies on an in-game library.
+- The library's keys are all the __repr__ that STRICTLY defines the objects that are added.
+- I'm going through some stuff, so it's hard to remember these.
+- For cutscenes / set pieces, I'm probably going to have to create a different dictionary and an ENTIRELY
+different category.

@@ -168,6 +168,63 @@ class Skull:
     def __eq__(self, other):
         return self.y == other.y
 
+class Crack:
+    def __init__(self, loc:tuple[int, int], crack_type=1):
+        self.x, self.y = loc
+
+        spr_tuple = ()
+        self.crack_type = crack_type
+        if crack_type == 2:
+            spr_tuple = (
+                # Okay
+                "sprites/crack_spr/crack1.png",
+                "sprites/crack_spr/crack1.png"
+            )
+        elif crack_type == 3:
+            spr_tuple = (
+                # Okay
+                "sprites/crack_spr/crack3.png",
+                "sprites/crack_spr/crack3.png"
+            )
+        else:
+            spr_tuple = (
+                # Okay
+                "sprites/crack_spr/crack1.png",
+                "sprites/crack_spr/crack1.png"
+            )
+        self.sprite = Sprites.Sprite(
+            spr_tuple
+        )
+        self.repr_name = ""
+
+    def set_xy(self, loc:tuple[float, float]):
+        self.x, self.y = loc
+
+    def xy(self):
+        return self.x, self.y
+
+    def render(self, dest:pygame.Surface, x, y):
+        self_spr = self.sprite.get_image_at(0) #if not self.destroyed else self.sprite.get_image_at(2)
+
+        # Bottom
+        dest.blit(self_spr, self_spr.get_rect(center=(x, y)))
+
+    def __copy__(self):
+        return_obj = Crack((0, 0), crack_type=self.crack_type)
+        return_obj.repr_name = self.repr_name
+        return return_obj
+
+    def __repr__(self):
+        return f"{self.repr_name}->({self.x}, {self.y})"
+
+    def __lt__(self, other):
+        return self.y < other.y
+
+    def __gt__(self, other):
+        return self.y > other.y
+
+    def __eq__(self, other):
+        return self.y == other.y
 
 class Table:
     def __init__(self, loc:tuple[int, int], angle=-1):

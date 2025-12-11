@@ -24,7 +24,10 @@ def misc_objects_generator(): # CAN ONLY BE USED IF A VIDEO MODE HAS BEEN SET
             "TableToppled180": decorations.TableToppled((0, 0), angle=180),
             "TableToppled225": decorations.TableToppled((0, 0), angle=225),
             "TableToppled270": decorations.TableToppled((0, 0), angle=270),
-            "TableToppled315": decorations.TableToppled((0, 0), angle=315)
+            "TableToppled315": decorations.TableToppled((0, 0), angle=315),
+            "Crack1" : decorations.Crack((0, 0), crack_type=1),
+            "Crack2": decorations.Crack((0, 0), crack_type=2),
+            "Crack3": decorations.Crack((0, 0), crack_type=3)
         }
         return misc_objs_dict
     return AssertionError("PYGAME DISPLAY WAS NOT INITIALIZED")
