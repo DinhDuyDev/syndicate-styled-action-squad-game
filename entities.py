@@ -14,6 +14,7 @@ import camera
 import deletor
 
 WEAPONS_REF = Weapons.WEAPONS_REF
+MAP_GEOMETRY:list[list[int]] = []
 
 def gen_all_sprites():
     return {
@@ -88,6 +89,9 @@ class SquadMan:
         self.dest_y = self.y
 
         all_sprs = gen_all_sprites()
+
+        self.references = []
+
         self.pistol_sprite = all_sprs["Pistol"]
         self.shotgun_sprite = all_sprs["Shotgun"]
         self.thompson_sprite = all_sprs["Thompson"]
@@ -200,6 +204,8 @@ class SquadMan:
 
     def destroy(self):
         deletor.Deleter.request_delete(self, SquadMan.squad_list)
+        for l in self.references:
+            deletor.Deleter.request_delete(self, l)
 
     def switch_sprites(self):
         if self.current_weapon_name == "Pistol" or self.current_weapon_name == "Revolver":
@@ -234,7 +240,7 @@ class SquadMan:
                         total_damage += _damage
                         _inaccuracies = wep.inaccuracy
                         _lives = wep.lives
-                        _create_ray = True#wep.create_ray
+                        _create_ray = wep.create_ray
                         Bullet.PlayerBullet(self.xy()[0]+vec_x, self.xy()[1]-vec_y, md_dir, self, damage=_damage, deviation=_inaccuracies,lives=_lives,create_ray=_create_ray)
 
                     effects.SoundSource(self.xy()[0], self.xy()[1], (total_damage / 20) * 30)
@@ -288,8 +294,9 @@ def move_squad(x, y, m):
 
 
 # Enemy mobster
-class EnemyMobster:
-    EnemyList:list = []
+enemy_list = []
+
+class Enemy:
     def __init__(self, loc:tuple[float, float], exclude=False, weapon_type="Pistol"):
         self.x, self.y = loc
         self.hp = 100
@@ -305,6 +312,8 @@ class EnemyMobster:
             "WAIT_AMBUSH",
             "SEARCH",
         }
+
+        self.references = []
 
         self.inaccuracy_multiplier = 1
         self.surprise_factor = 3
@@ -342,10 +351,10 @@ class EnemyMobster:
         self.cooldown = 0
         self.is_firing = False
 
-
         # The sound heard by the enemy
         self.sound_heard:effects.SoundSource|None = None
-        EnemyMobster.EnemyList.append(self)
+        if not exclude:
+            enemy_list.append(self)
 
     def set_dest(self, x, y, m):
         self.move_path.clear()
@@ -385,7 +394,8 @@ class EnemyMobster:
         self.dest_x, self.dest_y = self.x, self.y
         self.move_path.clear()
 
-    def action(self, m:list[list[int]]):
+    def action(self):
+        m = MAP_GEOMETRY
         self.switch_sprites()
         if self.state == "IDLE":
             if self.sound_heard is not None:
@@ -591,17 +601,17 @@ class EnemyMobster:
         self.hp -= amount
         self.front_direction = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
 
-    def check_death(self, ref):
+    def check_death(self):
         if self.hp <= 0:
-            self.destroy(ref)
+            self.destroy()
 
-    def destroy(self, *additional_refs):
-        for r in additional_refs:
-            deletor.Deleter.request_delete(self, r)
-        deletor.Deleter.request_delete(self, EnemyMobster.EnemyList)
+    def destroy(self):
+        for l in self.references:
+            deletor.Deleter.request_delete(self, l)
+        deletor.Deleter.request_delete(self, enemy_list)
 
     def __copy__(self):
-        return EnemyMobster((self.x, self.y), exclude=self.exclude, weapon_type=self.current_weapon_name)
+        return Enemy((self.x, self.y), exclude=False, weapon_type=self.current_weapon_name)
 
     def __repr__(self):
         return f"{self.repr_name}->({self.x}, {self.y})"
@@ -615,4 +625,4 @@ class EnemyMobster:
     def __eq__(self, other):
         return self.y == other.y
 
-all_entities_types = EnemyMobster|SquadMan
+all_enemies_type = Enemy

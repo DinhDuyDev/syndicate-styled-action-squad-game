@@ -15,9 +15,9 @@ class PlayerBullet:
         self.direction = direction
         self.deviation = deviation
         self.spawner = spawner
-        self.damage = damage
+        self.damage = damage * 100
         self.range = r
-        self.lives = lives
+        self.lives = lives * 10
         self.hit_targets = []
         self.create_ray = create_ray
         PlayerBullet.all_bullets.append(self)

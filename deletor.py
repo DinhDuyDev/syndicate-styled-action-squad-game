@@ -8,7 +8,6 @@ class DelLink:
     def __init__(self, obj, source:list):
         self.obj = obj
         self.source = source
-        print(f"{obj}:{source}")
     def delete_link(self):
         self.source.remove(self.obj)
 

@@ -1,11 +1,11 @@
 import settings
 from pathlib import Path
 class Level:
-    def __init__(self, map_matrix:list[list[int]], spawn_x, spawn_y, miscellaneous="", entities=""):
+    def __init__(self, map_matrix:list[list[int]], spawn_x, spawn_y, miscellaneous="", enemies=""):
         self.map_matrix = map_matrix
         self.spawn_loc:tuple[float, float] = spawn_x, spawn_y
         self.miscellaneous = [objs for objs in miscellaneous.split("//")]
-        self.entities = [objs for objs in entities.split("//")]
+        self.enemies = [objs for objs in enemies.split("//")]
 
     def get_level_matrix(self):
         return self.map_matrix
@@ -19,11 +19,11 @@ class Level:
     def set_miscellaneous(self, misc):
         self.miscellaneous = [objs for objs in misc.split("//")]
 
-    def set_entities(self, ents):
-        self.entities = [objs for objs in ents.split("//")]
+    def set_enemies(self, ents):
+        self.enemies = [objs for objs in ents.split("//")]
 
     def all_entities(self):
-        return self.entities
+        return self.enemies
 
 class Map:
     def __init__(self):
@@ -65,14 +65,14 @@ def load_level(game_map_object:Map, file_path):
 
             # Miscellaneous Objects
             miscellaneous_objects = loaded_data_dict["MISCELLANEOUS"] if loaded_data_dict["MISCELLANEOUS"] != "" else ""
-            entities = loaded_data_dict["ENTITIES"] if loaded_data_dict["ENTITIES"] != "" else ""
+            enemies = loaded_data_dict["ENEMIES"] if loaded_data_dict["ENEMIES"] != "" else ""
 
             new_map = Level(
                 geometry,
                 float(location[0]),
                 float(location[1]),
                 miscellaneous=miscellaneous_objects,
-                entities=entities
+                enemies=enemies
             )
             # Entities
             game_map_object.add_level(new_map)

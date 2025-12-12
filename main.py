@@ -5,7 +5,7 @@ import weakref
 import psutil
 import pygame
 import decorations
-import entities_gen
+import enemies_gen
 import map
 import entities
 import screen
@@ -52,10 +52,10 @@ class LoadedScene:
     # Game Miscellaneous Objects
     loaded_miscellaneous = None
     all_miscellaneous_objects: list[decorations.all_decoration_types] = []
-    all_entities: list[entities.all_entities_types] = [] # Doesn't include the player
+    # all_enemies: list[entities.all_enemies_type] = [] # Doesn't include the player
 
     # Draw stack
-    draw_stack:list[decorations.all_decoration_types|entities.all_entities_types] = []#entities.SquadMan.squad_list + all_entities + all_miscellaneous_objects
+    draw_stack:list[decorations.all_decoration_types|entities.all_enemies_type|entities.SquadMan] = []#entities.SquadMan.squad_list + all_entities + all_miscellaneous_objects
 
 # Very shaky level loading mechanism
 def load_level(index: int):
@@ -63,25 +63,28 @@ def load_level(index: int):
     # Geometry
     LoadedScene.loaded_map = [[0 for x in range(settings.hor_cells)] for y in range(
         settings.ver_cells)] if new_map else map.GameMap.get_map().get_level_matrix()
+    entities.MAP_GEOMETRY = LoadedScene.loaded_map
 
-    # Other Map Data
+    # Loading current map data, like misc (decorations) objects
     curr_map = map.GameMap.get_map()
     LoadedScene.current_map = map.GameMap.get_map()
     LoadedScene.loaded_miscellaneous = curr_map.all_miscellaneous_objects()
     LoadedScene.all_miscellaneous_objects.clear()
-    LoadedScene.all_entities.clear()
+    # LoadedScene.all_enemies.clear()
     loaded_miscellaneous = curr_map.all_miscellaneous_objects()
-    loaded_entities = curr_map.all_entities()
+    loaded_enemies = curr_map.all_entities()
 
     for x in loaded_miscellaneous:
         LoadedScene.all_miscellaneous_objects.append(misc_objs_gen.get_miscellaneous_objects(x))
 
-    for x in loaded_entities:  # All potential enemies that might
-        LoadedScene.all_entities.append(entities_gen.get_entities(x))
+    for x in loaded_enemies:  # Loaded
+        enemies_gen.get_enemies(x)
+        # e.references.append(LoadedScene.all_enemies)
+        # LoadedScene.all_enemies.append(e)
 
 
 load_level(0)
-print(LoadedScene.all_entities)
+print(entities.enemy_list)
 spawn_xy = LoadedScene.current_map.get_spawn_point()
 
 man1 = p.SquadMan(spawn_xy)
@@ -96,14 +99,12 @@ gameCamera = camera.Camera()
 gameCamera.offset_x = int((spawn_xy[0]-settings.WINDOW_WIDTH/(2*settings.zoom))/settings.cell_dimension)
 gameCamera.offset_y = int((spawn_xy[1]-settings.WINDOW_HEIGHT/(2*settings.zoom))/settings.cell_dimension)
 
-# enemy_rf = weakref.ref(LoadedScene.all_entities[0])
-# print(enemy_rf)
 
 # Memory
 process = psutil.Process()
 
 all_enemy_refs = [
-    weakref.ref(e) for e in LoadedScene.all_entities
+    weakref.ref(e) for e in entities.enemy_list
 ]
 
 # Game Tiles
@@ -112,13 +113,15 @@ LEVEL_TILES = tiles.get_tiles()
 # Mouse Clicking
 class user_mouse:
     mouse_pressed = False
+
 while running:
     ####################
     # ORDERING SPRITES #
     ####################
     LoadedScene.draw_stack.clear()
-    LoadedScene.draw_stack = entities.SquadMan.squad_list + LoadedScene.all_entities + LoadedScene.all_miscellaneous_objects
+    LoadedScene.draw_stack = entities.SquadMan.squad_list + entities.enemy_list + LoadedScene.all_miscellaneous_objects
     LoadedScene.draw_stack.sort()
+
     c_x, c_y = gameCamera.get_pos()
     c_x = int(c_x)
     c_y = int(c_y)
@@ -142,7 +145,6 @@ while running:
                 for sq in entities.SquadMan.squad_list:
                     sq_rect = pygame.Rect(sq.x-4-_x, sq.y-9-_y, 8, 16)#sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
                     if sq_rect.collidepoint(mx, my):
-                        print("God given")
                         clicking_on_player = True
                         sq.being_used = not sq.being_used
 
@@ -185,12 +187,6 @@ while running:
         _y = c_y * settings.cell_dimension
         scene_points.render(draw_dest, scene_points.xy()[0]-_x, scene_points.xy()[1]-_y)
 
-    # # Miscellaneous Objects
-    # for msc_objs in LoadedScene.all_miscellaneous_objects:
-    #     _x = c_x * settings.cell_dimension
-    #     _y = c_y * settings.cell_dimension
-    #     msc_objs.render(draw_dest, msc_objs.xy()[0]-_x, msc_objs.xy()[1]-_y)
-    #
 
     # Squad
     entities.SquadMan.make_footsteps()
@@ -204,42 +200,33 @@ while running:
         sq.action(LoadedScene.loaded_map)
         sq.firing(md_dir)
         sq.check_death()
-        # health_text = font.render(str(sq.pain), False, (255, 0, 0))
-        # health_rect = health_text.get_rect(center=(sq.xy()[0]-_x, sq.xy()[1]-6-_y))
-        # draw_dest.blit(health_text, health_rect)
 
-    # Entities are enemies and other environmental stuffs
-    # So this part is activating for all entities, not just enemies alone
-    for ent in LoadedScene.all_entities:
-        _x = c_x * settings.cell_dimension
-        _y = c_y * settings.cell_dimension
-        ent.action(LoadedScene.loaded_map)
-        ent.check_death(LoadedScene.all_entities)
-        # state = font.render(f"{ent.pain}", False, (255, 0, 0))
-        # state_rect = state.get_rect(center=(ent.x-_x, ent.y-_y-16))
-        # draw_dest.blit(state, state_rect)
+    # All enemies
+    for e in entities.enemy_list:
+        e.action()
+        e.check_death()
 
     # Bullets
     for bullet in Bullet.PlayerBullet.all_bullets:
         if isinstance(bullet.spawner, entities.SquadMan):
-            bullet.work(LoadedScene.loaded_map, LoadedScene.all_entities)
+            bullet.work(LoadedScene.loaded_map, entities.enemy_list)
         else:
             bullet.work(LoadedScene.loaded_map, entities.SquadMan.squad_list)
 
     # Effects
-    # for eff in effects.all_effects:
-    #     _x = c_x * settings.cell_dimension
-    #     _y = c_y * settings.cell_dimension
-    #     eff.render(draw_dest, eff.x-_x, eff.y-_y)
+    for eff in effects.all_effects:
+        _x = c_x * settings.cell_dimension
+        _y = c_y * settings.cell_dimension
+        eff.render(draw_dest, eff.x-_x, eff.y-_y)
 
     # Sounds
     for snd in effects.SoundSource.all_sounds_sources:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
         # For ALL ENEMIES
-        for enemy in entities.EnemyMobster.EnemyList:
+        for enemy in entities.enemy_list:
             enemy.hear_sound(snd)
-        # pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
+        pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
         snd.destroy()
 
     # Anything requesting to be deleted will be deleted here
@@ -260,18 +247,11 @@ while running:
         pygame.draw.rect(draw_dest, (255, 0, 0), (0, 0, 32, 4))
         pygame.draw.rect(draw_dest, (0, 255, 0), (0, 0, 32 * (clock.get_fps()/60), 4))
 
-    # cpu_usage = psutil.cpu_percent(interval=1)
-    # ram = psutil.virtual_memory()
-    # ram_usage = ram.percent
-    # ram_used = round(ram.used / 1e9, 2)
 
     memory_amount = font.render(f"{psutil.Process().memory_info().rss    / 1024 ** 2}", False, (255, 255, 255))
     memory_rect = memory_amount.get_rect(topleft=(0, 0))
     draw_dest.blit(memory_amount, memory_rect)
 
-    # usage_amounts = font.render(f"CPU%: {cpu_usage}, RAM_USG%: {ram_usage}, RAM_USED: {ram_used}", False, (255, 255, 255))
-    # usage_amounts_rect = usage_amounts.get_rect(topleft=(0, 64))
-    # draw_dest.blit(memory_amount, memory_rect)
 
     # Resizing Screem
     game_screen.screen.blit(pygame.transform.scale_by(pygame.transform.scale(draw_dest, game_screen.get_dimensions()), settings.zoom), (gameCamera.camera_shake_vector(), gameCamera.camera_shake_vector()))
@@ -279,9 +259,11 @@ while running:
     pygame.display.flip()
     clock.tick(60)
 
+LoadedScene.draw_stack.clear()
 print(pygame.display.Info())
 for i in all_enemy_refs:
     print(i)
+print(entities.enemy_list)
 
 print("--------------------------------")
 print("performance report")

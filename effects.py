@@ -16,12 +16,18 @@ class MuzzleFlash:
             )
         )
         all_effects.append(self)
+        self.references = []
 
     def render(self, dest: pygame.Surface, x, y):
         surf = pygame.transform.rotate(self.sprite.get_current_image(), random.randint(0, 360))
         rect = surf.get_rect(center=(x,y))
         dest.blit(surf, rect)
+        self.destroy()
+
+    def destroy(self):
         deletor.Deleter.request_delete(self, all_effects)
+        for l in self.references:
+            deletor.Deleter.request_delete(self, l)
 
 class BulletHole:
     all_bullet_holes:list = []
@@ -56,11 +62,16 @@ class Ray:
         self.y_end   = y_end
         self.color = color
         all_effects.append(self)
+        self.references = []
     def render(self, dest:pygame.Surface, x,y):
         dx = self.x_end - self.x
         dy = self.y_end - self.y
         pygame.draw.line(dest, self.color, (x, y), (x+dx, y+dy), width=2)
+        self.destroy()
+    def destroy(self):
         deletor.Deleter.request_delete(self, all_effects)
+        for l in self.references:
+            deletor.Deleter.request_delete(self, l)
 
 effect_types = MuzzleFlash|Ray|BulletHole
 all_effects:list[effect_types] = []
@@ -72,6 +83,9 @@ class SoundSource:
         self.y = y
         self.radius = radius
         self.num_alert = 3
+        self.references = []
         SoundSource.all_sounds_sources.append(self)
     def destroy(self):
         deletor.Deleter.request_delete(self, SoundSource.all_sounds_sources)
+        for l in self.references:
+            deletor.Deleter.request_delete(self, l)
