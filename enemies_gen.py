@@ -1,13 +1,13 @@
-import entities
+import player_enemies
 import pygame
 import copy
 def enemies_generator(): # CAN ONLY BE USED IF A VIDEO MODE HAS BEEN SET
     if pygame.display.get_init():
         misc_objs_dict = {
-            "EnemyMobsterPistol": entities.Enemy((0, 0),weapon_type="Pistol", exclude=True),
-            "EnemyMobsterShotgun": entities.Enemy((0, 0),weapon_type="Shotgun", exclude=True),
-            "EnemyMobsterThompson": entities.Enemy((0, 0),weapon_type="Thompson", exclude=True),
-            "EnemyMobsterBar": entities.Enemy((0, 0),weapon_type="Bar", exclude=True)
+            "EnemyMobsterPistol": player_enemies.Enemy((0, 0), weapon_type="Pistol", exclude=True),
+            "EnemyMobsterShotgun": player_enemies.Enemy((0, 0), weapon_type="Shotgun", exclude=True),
+            "EnemyMobsterThompson": player_enemies.Enemy((0, 0), weapon_type="Thompson", exclude=True),
+            "EnemyMobsterBar": player_enemies.Enemy((0, 0), weapon_type="Bar", exclude=True)
         }
         return misc_objs_dict
     return AssertionError("PYGAME DISPLAY WAS NOT INITIALIZED")

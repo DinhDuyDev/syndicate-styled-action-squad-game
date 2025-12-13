@@ -21,10 +21,10 @@ class Crate:
         self.sprite = Sprites.Sprite(
             (
                 # Okay
-                ("sprites/crate_spr/crate_normal_top.png" if not destroyed else "sprites/crate_spr/crate_normal_top_broken.png")
+                ("CRATE_NORMAL_TOP" if not destroyed else "CRATE_NORMAL_TOP_BROKEN")
                 if not is_wep_crate else
-                ("sprites/crate_spr/crate_weapons_top.png" if not destroyed else "sprites/crate_spr/crate_weapons_broken_top.png"),
-                "sprites/crate_spr/crate_body.png"
+                ("CRATE_WEAPONS_TOP" if not destroyed else "CRATE_WEAPONS_BROKEN_TOP"),
+                "CRATE_BODY"
             )
         )
         self.repr_name = ""
@@ -77,8 +77,8 @@ class Barrel:
         self.sprite = Sprites.Sprite(
             (
                 # Okay
-                "sprites/barrel_spr/barrel_top.png" if not destroyed else "sprites/barrel_spr/barrel_top_broken.png",
-                "sprites/barrel_spr/barrel_body.png"
+                "BARREL_TOP" if not destroyed else "BARREL_TOP_BROKEN",
+                "BARREL_BODY"
             )
         )
         self.repr_name = ""
@@ -133,8 +133,8 @@ class Skull:
         self.sprite = Sprites.Sprite(
             (
                 # Okay
-                "sprites/skull_spr/skull.png",
-                "sprites/skull_spr/skull.png"
+                "SKULL",
+                "SKULL"
             )
         )
         self.repr_name = ""
@@ -177,20 +177,20 @@ class Crack:
         if crack_type == 2:
             spr_tuple = (
                 # Okay
-                "sprites/crack_spr/crack1.png",
-                "sprites/crack_spr/crack1.png"
+                "CRACK_2",
+                "CRACK_2"
             )
         elif crack_type == 3:
             spr_tuple = (
                 # Okay
-                "sprites/crack_spr/crack3.png",
-                "sprites/crack_spr/crack3.png"
+                "CRACK_3",
+                "CRACK_3"
             )
         else:
             spr_tuple = (
                 # Okay
-                "sprites/crack_spr/crack1.png",
-                "sprites/crack_spr/crack1.png"
+                "CRACK_1",
+                "CRACK_1"
             )
         self.sprite = Sprites.Sprite(
             spr_tuple
@@ -232,7 +232,7 @@ class Table:
         self.sprite = Sprites.Sprite(
             (
                 # Okay
-                ("sprites/table_spr/table_top.png", "sprites/table_spr/table_leg.png")
+                ("TABLE_TOP", "TABLE_LEG")
             )
         )
         self.repr_name = ""
@@ -285,8 +285,8 @@ class TableToppled:
         self.sprite = Sprites.Sprite(
             (
                 # Okay
-                ("sprites/table_spr/table_top_toppled_border.png", "sprites/table_spr/table_top_toppled_inner.png"
-                 , "sprites/table_spr/table_toppled_leg.png")
+                ("TABLE_TOP_TOPPLED_BORDER", "TABLE_TOP_TOPPLED_INNER"
+                 , "TABLE_TOPPLED_LEG")
             )
         )
         self.repr_name = ""

@@ -1,4 +1,5 @@
 import pygame
+import ALL_SPRITES
 class Sprite:
     def __init__(self, images_links:list|tuple):
         self.image_links = images_links
@@ -6,7 +7,7 @@ class Sprite:
         self.image_index = 0
         self.image_speed = 0
         for link in images_links:
-            self.images.append(pygame.image.load(link).convert_alpha())
+            self.images.append(ALL_SPRITES.ASP[link])
 
     def get_current_image(self):
         return self.images[int(self.image_index)]

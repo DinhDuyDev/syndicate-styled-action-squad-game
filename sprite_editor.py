@@ -9,6 +9,7 @@ import settings
 import utilityfuncs
 import colors
 import math
+import ALL_SPRITES
 
 # Screen setup
 game_screen = screen.Screen(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
@@ -33,19 +34,27 @@ class spr:
 palette_width = len(colors.colors[0])
 palette_height = len(colors.colors)
 colors_arr:list[list[tuple[int, int, int]]] = [[(0, 0, 0) for _x in range(palette_width)] for _y in range(palette_height)]
-for i in range(palette_height):
+for i in range(palette_height-1):
     for j in range(palette_width):
         colors_arr[i][j] = colors.colors[i][j]
+
+# If the last row is missing some values:
+final_row = len(colors.colors[-1])
+for j in range(final_row):
+    colors_arr[-1][j] = colors.colors[-1][j]
+if final_row < palette_width:
+    for i in range(palette_width - final_row):
+        colors_arr[-1].append((0, 0, 0))
 
 current_color = (75, 75, 75)
 
 # Tools
 sprite_tools = {
-    "Pencil": pygame.image.load("sprites/Sprite_Editor/Tools/pencil.png"),
-    "Line": pygame.image.load("sprites/Sprite_Editor/Tools/line.png"),
-    "Bucket": pygame.image.load("sprites/Sprite_Editor/Tools/bucket.png"),
-    "Select": pygame.image.load("sprites/Sprite_Editor/Tools/select.png"),
-    "Eraser": pygame.image.load("sprites/Sprite_Editor/Tools/eraser.png"),
+    "Pencil": ALL_SPRITES.ASP["PENCIL"],#pygame.image.load("sprites/Sprite_Editor/Tools/pencil.png"),
+    "Line": ALL_SPRITES.ASP["LINE"],#pygame.image.load("sprites/Sprite_Editor/Tools/line.png"),
+    "Bucket": ALL_SPRITES.ASP["BUCKET"],#pygame.image.load("sprites/Sprite_Editor/Tools/bucket.png"),
+    "Select": ALL_SPRITES.ASP["SELECT"],#pygame.image.load("sprites/Sprite_Editor/Tools/select.png"),
+    "Eraser": ALL_SPRITES.ASP["ERASER"]#pygame.image.load("sprites/Sprite_Editor/Tools/eraser.png"),
 }
 current_mode = "Pencil"
 

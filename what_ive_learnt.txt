@@ -1,0 +1,5 @@
+Some things about sprite loading:
+- You have to have a display mode set before converting your sprites (.convert() and .convert_alpha())
+- You can literally call init as much as you want. It doesn't affect memory.
+- Having two SCALED displays will break your program.
+- Be careful with code structure

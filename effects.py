@@ -11,8 +11,8 @@ class MuzzleFlash:
         self.y = y
         self.sprite = Sprites.Sprite(
             (
-                "sprites/muzzle_flash_spr/flash.png",
-                "sprites/muzzle_flash_spr/flash.png"
+                "FLASH",
+                "FLASH"
             )
         )
         all_effects.append(self)
@@ -35,9 +35,9 @@ class BulletHole:
         self.x, self.y = x,y
         self.sprite = Sprites.Sprite(
             (
-                "sprites/bullet_hole_spr/hole1.png",
-                "sprites/bullet_hole_spr/hole1.png",
-                "sprites/bullet_hole_spr/hole1.png"
+                "HOLE_1",
+                "HOLE_2",
+                "HOLE_3"
             )
         )
         self.sprite.set_image_index(random.randint(0, self.sprite.get_image_number()-1))

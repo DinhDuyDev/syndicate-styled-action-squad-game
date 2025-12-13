@@ -7,10 +7,10 @@ import pygame
 import decorations
 import enemies_gen
 import map
-import entities
+import player_enemies
 import screen
 import settings
-import entities as p
+import player_enemies as p
 import tiles
 import utilityfuncs
 import camera
@@ -18,6 +18,7 @@ import misc_objs_gen
 import Bullet
 import effects
 import deletor
+import entities
 
 ###########################
 # Initializing everything #
@@ -55,7 +56,7 @@ class LoadedScene:
     # all_enemies: list[entities.all_enemies_type] = [] # Doesn't include the player
 
     # Draw stack
-    draw_stack:list[decorations.all_decoration_types|entities.all_enemies_type|entities.SquadMan] = []#entities.SquadMan.squad_list + all_entities + all_miscellaneous_objects
+    draw_stack:list[decorations.all_decoration_types | player_enemies.all_enemies_type | player_enemies.SquadMan] = []#entities.SquadMan.squad_list + all_entities + all_miscellaneous_objects
 
 # Very shaky level loading mechanism
 def load_level(index: int):
@@ -63,6 +64,9 @@ def load_level(index: int):
     # Geometry
     LoadedScene.loaded_map = [[0 for x in range(settings.hor_cells)] for y in range(
         settings.ver_cells)] if new_map else map.GameMap.get_map().get_level_matrix()
+
+    # COMPOSITION
+    player_enemies.MAP_GEOMETRY = LoadedScene.loaded_map
     entities.MAP_GEOMETRY = LoadedScene.loaded_map
 
     # Loading current map data, like misc (decorations) objects
@@ -84,7 +88,7 @@ def load_level(index: int):
 
 
 load_level(0)
-print(entities.enemy_list)
+print(player_enemies.enemy_list)
 spawn_xy = LoadedScene.current_map.get_spawn_point()
 
 man1 = p.SquadMan(spawn_xy)
@@ -92,7 +96,7 @@ man2 = p.SquadMan(spawn_xy)
 man3 = p.SquadMan(spawn_xy)
 man4 = p.SquadMan(spawn_xy)
 
-entities.move_squad(spawn_xy[0], spawn_xy[1], LoadedScene.loaded_map)
+player_enemies.move_squad(spawn_xy[0], spawn_xy[1], LoadedScene.loaded_map)
 
 # Camera
 gameCamera = camera.Camera()
@@ -104,7 +108,7 @@ gameCamera.offset_y = int((spawn_xy[1]-settings.WINDOW_HEIGHT/(2*settings.zoom))
 process = psutil.Process()
 
 all_enemy_refs = [
-    weakref.ref(e) for e in entities.enemy_list
+    weakref.ref(e) for e in player_enemies.enemy_list
 ]
 
 # Game Tiles
@@ -119,7 +123,7 @@ while running:
     # ORDERING SPRITES #
     ####################
     LoadedScene.draw_stack.clear()
-    LoadedScene.draw_stack = entities.SquadMan.squad_list + entities.enemy_list + LoadedScene.all_miscellaneous_objects
+    LoadedScene.draw_stack = player_enemies.SquadMan.squad_list + player_enemies.enemy_list + LoadedScene.all_miscellaneous_objects
     LoadedScene.draw_stack.sort()
 
     c_x, c_y = gameCamera.get_pos()
@@ -142,7 +146,7 @@ while running:
                 _x = c_x * settings.cell_dimension
                 _y = c_y * settings.cell_dimension
                 # Interacting with the player squad
-                for sq in entities.SquadMan.squad_list:
+                for sq in player_enemies.SquadMan.squad_list:
                     sq_rect = pygame.Rect(sq.x-4-_x, sq.y-9-_y, 8, 16)#sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
                     if sq_rect.collidepoint(mx, my):
                         clicking_on_player = True
@@ -189,8 +193,8 @@ while running:
 
 
     # Squad
-    entities.SquadMan.make_footsteps()
-    for sq in entities.SquadMan.squad_list:
+    player_enemies.SquadMan.make_footsteps()
+    for sq in player_enemies.SquadMan.squad_list:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
         # sq_rect = sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
@@ -202,16 +206,23 @@ while running:
         sq.check_death()
 
     # All enemies
-    for e in entities.enemy_list:
+    for e in player_enemies.enemy_list:
         e.action()
         e.check_death()
 
+    # All entities
+    for ent in entities.all_entities:
+        _x = c_x * settings.cell_dimension
+        _y = c_y * settings.cell_dimension
+        ent.action()
+        ent.render(draw_dest, ent.xy()[0]-_x, ent.xy()[1]-_y)
+
     # Bullets
     for bullet in Bullet.PlayerBullet.all_bullets:
-        if isinstance(bullet.spawner, entities.SquadMan):
-            bullet.work(LoadedScene.loaded_map, entities.enemy_list)
+        if isinstance(bullet.spawner, player_enemies.SquadMan):
+            bullet.work(LoadedScene.loaded_map, player_enemies.enemy_list)
         else:
-            bullet.work(LoadedScene.loaded_map, entities.SquadMan.squad_list)
+            bullet.work(LoadedScene.loaded_map, player_enemies.SquadMan.squad_list)
 
     # Effects
     for eff in effects.all_effects:
@@ -224,7 +235,7 @@ while running:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
         # For ALL ENEMIES
-        for enemy in entities.enemy_list:
+        for enemy in player_enemies.enemy_list:
             enemy.hear_sound(snd)
         pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
         snd.destroy()
@@ -263,7 +274,7 @@ LoadedScene.draw_stack.clear()
 print(pygame.display.Info())
 for i in all_enemy_refs:
     print(i)
-print(entities.enemy_list)
+print(player_enemies.enemy_list)
 
 print("--------------------------------")
 print("performance report")

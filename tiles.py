@@ -1,14 +1,15 @@
 import pygame
+import ALL_SPRITES
 
 # Sprites
 def get_tiles(pth="tiles_mapping.dtl") -> dict[int,pygame.Surface]:
     if not pygame.display.get_init():
         return {}
     else:
+        all_tiles = ["EMPTY", "NORMAL_BRICK", "DIRTY_BRICK", "NO_ACCESS", "CONCRETE", "SHINY_BRICK"]
+        ind = 0
         return_dict = dict()
-        with open("tiles_mapping.dtl", 'r') as f:
-            ls = [row.strip() for row in f]
-            for s in ls:
-                key, val = int(s.split(":")[0]), str((s.split(":")[1])).strip()
-                return_dict[key] = pygame.image.load(val).convert()
+        for tile_name in all_tiles:
+            return_dict[ind] = ALL_SPRITES.ASP[tile_name]
+            ind += 1
         return return_dict

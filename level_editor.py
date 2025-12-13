@@ -1,5 +1,5 @@
 import pygame
-import entities
+import player_enemies
 import settings
 import screen
 import camera
@@ -14,6 +14,7 @@ import enemies_gen
 import deletor
 import weakref
 import gc
+import ALL_SPRITES
 
 pygame.init()
 pygame.font.init()
@@ -57,11 +58,11 @@ current_sprite = 1
 
 # Tools
 TOOLS = {
-    "Pencil" : pygame.image.load("sprites/Level Editor/pencil.png").convert_alpha(),
-    "Bucket": pygame.image.load("sprites/Level Editor/bucket.png").convert_alpha(),
-    "Player_Spawn": pygame.image.load("sprites/Level Editor/player_spawn.png").convert_alpha(),
-    "Misc": pygame.image.load("sprites/Level Editor/miscellaneous.png").convert_alpha(),
-    "Enemy_Place": pygame.image.load("sprites/Level Editor/enemy_tool.png").convert_alpha(),
+    "Pencil" : ALL_SPRITES.ASP["PENCIL"],
+    "Bucket": ALL_SPRITES.ASP["BUCKET"],
+    "Player_Spawn": ALL_SPRITES.ASP["PLAYER_SPAWN"],
+    "Misc": ALL_SPRITES.ASP["MISCELLANEOUS"],
+    "Enemy_Place": ALL_SPRITES.ASP["ENEMY_TOOL"],
 }
 tool_mode = "Pencil"
 
@@ -371,7 +372,7 @@ while running:
                         o.destroy()
                         deletor.Deleter.request_delete(o, e_list)
             if pygame.mouse.get_pressed()[0] and not mouse_held_down:
-                print(entities.enemy_list)
+                print(player_enemies.enemy_list)
                 spawn_x, spawn_y = mx + _x, my + _y
                 new_object = copy.copy(ENEMY_OBJECTS[selected_entity])
                 new_object.repr_name = selected_entity
@@ -416,10 +417,10 @@ while running:
     pygame.display.flip()
     clock.tick(60)
 
-print(entities.enemy_list)
+print(player_enemies.enemy_list)
 for i in range(100):
     gc.collect()
-print(len(entities.enemy_list))
+print(len(player_enemies.enemy_list))
 print(f"Enemy Mobster Weakref: {rf}")
 print(f"Misc Weakref: {rf_misc}")
 print(f"Enemy mobster references: {weakref.getweakrefcount(rf)}")
