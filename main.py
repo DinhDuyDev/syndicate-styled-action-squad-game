@@ -1,6 +1,4 @@
 # Importing all the library in
-import math
-import os
 import weakref
 import psutil
 import pygame
@@ -189,7 +187,7 @@ while running:
     for scene_points in LoadedScene.draw_stack:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
-        scene_points.render(draw_dest, scene_points.xy()[0]-_x, scene_points.xy()[1]-_y)
+        scene_points.render(draw_dest, scene_points.x-_x, scene_points.y-_y)
 
 
     # Squad
@@ -200,7 +198,7 @@ while running:
         # sq_rect = sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
         # pygame.draw.rect(draw_dest, (255, 255, 255), sq_rect)
         # sq.render(draw_dest, sq.xy()[0]-_x, sq.xy()[1]-_y)
-        md_dir = utilityfuncs.point_direction(sq.xy()[0]-_x, sq.xy()[1]-_y, mx, my)
+        md_dir = utilityfuncs.point_direction(sq.x-_x, sq.y-_y, mx, my)
         sq.action(LoadedScene.loaded_map)
         sq.firing(md_dir)
         sq.check_death()
@@ -215,7 +213,7 @@ while running:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
         ent.action()
-        ent.render(draw_dest, ent.xy()[0]-_x, ent.xy()[1]-_y)
+        ent.render(draw_dest, ent.x-_x, ent.y-_y)
 
     # Bullets
     for bullet in Bullet.PlayerBullet.all_bullets:
@@ -231,7 +229,7 @@ while running:
         eff.render(draw_dest, eff.x-_x, eff.y-_y)
 
     # Sounds
-    for snd in effects.SoundSource.all_sounds_sources:
+    for snd in entities.SoundSource.all_sounds_sources:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
         # For ALL ENEMIES

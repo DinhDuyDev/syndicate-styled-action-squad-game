@@ -81,9 +81,27 @@ ASP = {
     "MOBSTER_TORSO_315SHOTGUN": pygame.image.load("sprites/mob_spr/mobster_torso_315shotgun.png").convert_alpha(),
     "MOBSTER_TORSO_315THOMPSON": pygame.image.load("sprites/mob_spr/mobster_torso_315thompson.png").convert_alpha(),
 
+    # soldier_spr
+    "SOLDIER_0_GLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_0_glauncher.png").convert_alpha(),
+    "SOLDIER_45_GLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_45_glauncher.png").convert_alpha(),
+    "SOLDIER_90_GLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_90_glauncher.png").convert_alpha(),
+    "SOLDIER_135_GLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_135_glauncher.png").convert_alpha(),
+    "SOLDIER_180_GLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_180_glauncher.png").convert_alpha(),
+    "SOLDIER_225_GLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_225_glauncher.png").convert_alpha(),
+    "SOLDIER_270_GLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_270_glauncher.png").convert_alpha(),
+    "SOLDIER_315_GLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_315_glauncher.png").convert_alpha(),
+
+    "SOLDIER_LEGS_LEFT": pygame.image.load("sprites/soldier_spr/soldier_legs_left.png").convert_alpha(),
+    "SOLDIER_LEGS_NORMAL": pygame.image.load("sprites/soldier_spr/soldier_legs_normal.png").convert_alpha(),
+    "SOLDIER_LEGS_RIGHT": pygame.image.load("sprites/soldier_spr/soldier_legs_right.png").convert_alpha(),
+
     # muzzle_flash_spr
     "FLASH" : pygame.image.load("sprites/muzzle_flash_spr/flash.png").convert_alpha(),
 
+    # smoke_spr
+    "SMOKE1": pygame.image.load("sprites/smoke_spr/smoke1.png").convert_alpha(),
+    "SMOKE2": pygame.image.load("sprites/smoke_spr/smoke2.png").convert_alpha(),
+    "SMOKE3": pygame.image.load("sprites/smoke_spr/smoke3.png").convert_alpha(),
 
     # skull_spr
     "SKULL": pygame.image.load("sprites/skull_spr/skull.png").convert_alpha(),
@@ -117,8 +135,8 @@ ASP = {
 pygame.display.quit()
 pygame.display.init()
 
-# with open("temp.txt", 'r') as f:
-#     for filename in f:
-#         fn = filename.strip()
-#         fn_key = fn.strip().split("/")[3].split(".")[0]
-#         print(f'\t"{fn_key.upper()}" : pygame.image.load("{fn}").convert_alpha(),')
+with open("temp.txt", 'r') as f:
+    for filename in f:
+        fn = filename.strip()
+        fn_key = fn.strip().split("/")[2].split(".")[0]
+        print(f'\t"{fn_key.upper()}" : pygame.image.load("{fn}").convert_alpha(),')

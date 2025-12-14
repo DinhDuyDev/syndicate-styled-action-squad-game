@@ -1,0 +1,3 @@
+sprites/smoke_spr/smoke1.png
+sprites/smoke_spr/smoke2.png
+sprites/smoke_spr/smoke3.png

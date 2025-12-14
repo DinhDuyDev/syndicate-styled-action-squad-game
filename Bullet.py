@@ -1,11 +1,10 @@
 import math
-
 import deletor
 import settings
 import random
 import effects
 import utilityfuncs
-
+import entities
 
 class PlayerBullet:
     all_bullets = []
@@ -15,9 +14,9 @@ class PlayerBullet:
         self.direction = direction
         self.deviation = deviation
         self.spawner = spawner
-        self.damage = damage * 100
+        self.damage = damage
         self.range = r
-        self.lives = lives * 10
+        self.lives = lives
         self.hit_targets = []
         self.create_ray = create_ray
         PlayerBullet.all_bullets.append(self)

@@ -1,5 +1,3 @@
-import copy
-
 import pygame
 import math
 import pathfind
@@ -16,6 +14,9 @@ import entities
 
 WEAPONS_REF = Weapons.WEAPONS_REF
 MAP_GEOMETRY:list[list[int]] = []
+
+# Enemy mobster
+enemy_list = []
 
 def gen_all_sprites():
     return {
@@ -66,8 +67,72 @@ def gen_all_sprites():
                 "MOBSTER_TORSO_270BAR",
                 "MOBSTER_TORSO_315BAR",
             )
+        ),
+        "GrenadeLauncher" : Sprites.Sprite(
+            (
+                "SOLDIER_0_GLAUNCHER",
+                "SOLDIER_45_GLAUNCHER",
+                "SOLDIER_90_GLAUNCHER",
+                "SOLDIER_135_GLAUNCHER",
+                "SOLDIER_180_GLAUNCHER",
+                "SOLDIER_225_GLAUNCHER",
+                "SOLDIER_270_GLAUNCHER",
+                "SOLDIER_315_GLAUNCHER",
+            )
+        ),
+        "LEGS" : Sprites.Sprite(
+            (
+                "SOLDIER_LEGS_LEFT",
+                "SOLDIER_LEGS_RIGHT",
+                "SOLDIER_LEGS_NORMAL"
+            )
         )
     }
+
+def fire_gun(obj, direction):
+    obj.cooldown += 1
+    if obj.cooldown > obj.get_weapon().fire_cooldown:
+        base_ref = WEAPONS_REF[obj.current_weapon_name].damage
+        total_damage = base_ref
+        md_dir = direction
+        d = md_dir // 45
+        vec_x = math.cos(math.radians(d * 45)) * 8
+        vec_y = math.sin(math.radians(d * 45)) * 8
+
+        wep = obj.get_weapon()
+
+        for i in range(wep.pellets):
+            _damage = wep.damage
+            total_damage += _damage
+            _inaccuracies = wep.inaccuracy
+            _lives = wep.lives
+            _projectile_type = wep.projectile_type
+            _create_ray = wep.create_ray
+            if _projectile_type == "GRENADE":
+                entities.Grenade(obj.x+vec_x, obj.y - vec_y, md_dir, SquadMan.squad_list + enemy_list)
+            else:
+                Bullet.PlayerBullet(obj.xy()[0] + vec_x, obj.xy()[1] - vec_y, md_dir, obj, damage=_damage,
+                                    deviation=_inaccuracies, lives=_lives, create_ray=_create_ray)
+                effects.MuzzleFlash(obj.xy()[0] + vec_x, obj.xy()[1] - vec_y)
+
+        entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / 20) * 30)
+        obj.sprite.set_image_index(d)
+        shake_factor = total_damage / 20
+        camera.Camera.activeCam.screen_shake(shake_factor * 3)
+        obj.knockback((total_damage / 50) ** 0.8 + random.randint(1, 2), direction + 180)
+        obj.cooldown = 0
+
+def switch_sprite(obj):
+    if obj.current_weapon_name == "Pistol" or obj.current_weapon_name == "Revolver":
+        obj.sprite = obj.pistol_sprite
+    elif obj.current_weapon_name == "Shotgun":
+        obj.sprite = obj.shotgun_sprite
+    elif obj.current_weapon_name == "Thompson":
+        obj.sprite = obj.thompson_sprite
+    elif obj.current_weapon_name == "Bar":
+        obj.sprite = obj.bar_sprite
+    elif obj.current_weapon_name == "GrenadeLauncher":
+        obj.sprite = obj.grenade_sprite
 
 class SquadMan:
     squad_list:list = []
@@ -85,7 +150,7 @@ class SquadMan:
         if SquadMan.squad_footstep_counter >= 30 * (1/spd_modifier):
             for e in SquadMan.squad_list:
                 if e.being_used and len(e.move_path) != 0:
-                    effects.SoundSource(e.x, e.y, 10 * (6 / spd_modifier ** 1.2)) # Making footstep noises
+                    entities.SoundSource(e.x, e.y, 10 * (6 / spd_modifier ** 1.2)) # Making footstep noises
                     break
             SquadMan.squad_footstep_counter = 0
         else:
@@ -105,13 +170,10 @@ class SquadMan:
         self.shotgun_sprite = all_sprs["Shotgun"]
         self.thompson_sprite = all_sprs["Thompson"]
         self.bar_sprite = all_sprs["Bar"]
-        self.leg_normal_sprite = Sprites.Sprite(
-            (
-                "MOBSTER_LEG_LEFTUP",
-                "MOBSTER_LEG_RIGHTUP",
-                "MOBSTER_LEG_NORMAL"
-            )
-        )
+        self.grenade_sprite = all_sprs["GrenadeLauncher"]
+
+        self.leg_normal_sprite = all_sprs["LEGS"]
+
         self.leg_crouch_sprite = Sprites.Sprite(
             (
                 "MOBSTER_LEG_CROUCHING_LEFT",
@@ -131,7 +193,7 @@ class SquadMan:
         self.knock_back_strength = 0
         self.knock_back_dir = 0
 
-        self.current_weapon_name = random.choice(["Shotgun", "Revolver", "Pistol", "Thompson"])
+        self.current_weapon_name = "Thompson"#random.choice(["Shotgun", "Revolver", "Pistol", "Thompson"])
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
@@ -217,51 +279,12 @@ class SquadMan:
             deletor.Deleter.request_delete(self, l)
 
     def switch_sprites(self):
-        if self.current_weapon_name == "Pistol" or self.current_weapon_name == "Revolver":
-            self.sprite = self.pistol_sprite
-        elif self.current_weapon_name == "Shotgun":
-            self.sprite = self.shotgun_sprite
-        elif self.current_weapon_name == "Thompson":
-            self.sprite = self.thompson_sprite
-        elif self.current_weapon_name == "Bar":
-            self.sprite = self.bar_sprite
-
-        if self.crouching:
-            self.leg_sprite = self.leg_crouch_sprite
-        else:
-            self.leg_sprite = self.leg_normal_sprite
+        switch_sprite(self)
 
     def firing(self, direction):
-        self.cooldown += 1
-        if pygame.key.get_pressed()[pygame.K_e] or pygame.mouse.get_pressed()[2]:
-            if self.cooldown > self.get_weapon().fire_cooldown:
-                base_ref = WEAPONS_REF["Pistol"].damage
-                total_damage = base_ref
-                if self.being_used:
-                    md_dir = direction # Pain and Flinch
-                    d = md_dir//45
-                    vec_x = math.cos(math.radians(d*45)) * 8
-                    vec_y = math.sin(math.radians(d*45)) * 8
-
-                    wep = self.get_weapon()
-                    for i in range(wep.pellets):
-                        _damage = wep.damage
-                        total_damage += _damage
-                        _inaccuracies = wep.inaccuracy
-                        _lives = wep.lives
-                        _create_ray = wep.create_ray
-                        Bullet.PlayerBullet(self.xy()[0]+vec_x, self.xy()[1]-vec_y, md_dir, self, damage=_damage, deviation=_inaccuracies,lives=_lives,create_ray=_create_ray)
-
-                    effects.SoundSource(self.xy()[0], self.xy()[1], (total_damage / 20) * 30)
-                    effects.MuzzleFlash(self.xy()[0]+vec_x, self.xy()[1]-vec_y)
-                    self.sprite.set_image_index(d)
-                    self.focused = False
-                    shake_factor = total_damage / 20
-                    camera.Camera.activeCam.screen_shake(shake_factor * 3)
-                    entities.Grenade(self.x, self.y, md_dir+random.randrange(-5, 5))
-                    self.knockback((total_damage/50)**0.8+random.randint(1,2), direction+180)
-
-                self.cooldown = 0
+        if self.being_used:
+            if pygame.key.get_pressed()[pygame.K_e] or pygame.mouse.get_pressed()[2]:
+                fire_gun(self, direction)
 
     def knockback(self, strength, knock_dir):
         self.knock_back_dir = knock_dir
@@ -302,9 +325,6 @@ def move_squad(x, y, m):
         d += 90
 
 
-# Enemy mobster
-enemy_list = []
-
 class Enemy:
     def __init__(self, loc:tuple[float, float], exclude=False, weapon_type="Pistol"):
         self.x, self.y = loc
@@ -333,6 +353,7 @@ class Enemy:
         self.shotgun_sprite = all_sprs["Shotgun"]
         self.thompson_sprite = all_sprs["Thompson"]
         self.bar_sprite = all_sprs["Bar"]
+        self.grenade_sprite = all_sprs["GrenadeLauncher"]
         self.sprite = self.thompson_sprite
 
         self.leg_sprite = Sprites.Sprite(
@@ -360,8 +381,11 @@ class Enemy:
         self.cooldown = 0
         self.is_firing = False
 
+        self.knock_back_dir = 0
+        self.knock_back_strength = 0
+
         # The sound heard by the enemy
-        self.sound_heard:effects.SoundSource|None = None
+        self.sound_heard:entities.SoundSource|None = None
         if not exclude:
             enemy_list.append(self)
 
@@ -509,37 +533,9 @@ class Enemy:
         self.speed_factor = spd
 
     def firing(self, direction):
-        self.cooldown += 1
-        if self.cooldown > self.get_weapon().fire_cooldown:
-            base_ref = WEAPONS_REF["Pistol"].damage
-            total_damage = base_ref
-            md_dir = direction
-            d = md_dir // 45
-            vec_x = math.cos(math.radians(d * 45)) * 8
-            vec_y = math.sin(math.radians(d * 45)) * 8
+        fire_gun(self, direction)
 
-            wep = self.get_weapon()
-            inaccuracy_mult = int(max(self.inaccuracy_multiplier, 1))
-            if wep.name == "Shotgun": # If shotgun, then reduce accuracy
-                inaccuracy_mult = 1
-            print(inaccuracy_mult)
-
-            for i in range(wep.pellets):
-                _damage = wep.damage
-                total_damage += _damage
-                _inaccuracies = wep.inaccuracy * inaccuracy_mult
-                _lives = wep.lives
-                _create_ray = True#wep.create_ray
-                Bullet.PlayerBullet(self.xy()[0] + vec_x, self.xy()[1] - vec_y, md_dir, self, damage=_damage,
-                                    deviation=_inaccuracies, lives=_lives, create_ray=_create_ray)
-            effects.SoundSource(self.xy()[0], self.xy()[1], (total_damage / 20) * 30)
-            effects.MuzzleFlash(self.xy()[0] + vec_x, self.xy()[1] - vec_y)
-            self.sprite.set_image_index(d)
-            shake_factor = total_damage / 20
-            camera.Camera.activeCam.screen_shake(shake_factor * 3)
-            self.cooldown = 0
-
-    def hear_sound(self, snd:effects.SoundSource):
+    def hear_sound(self, snd:entities.SoundSource):
         chance = random.randint(0, 100)
         if chance < 33:
             if utilityfuncs.point_distance(self.x, self.y, snd.x, snd.y) < snd.radius:
@@ -589,16 +585,13 @@ class Enemy:
         self.dest_x, self.dest_y = loc
 
     def switch_sprites(self):
-        if self.current_weapon_name == "Pistol" or self.current_weapon_name == "Revolver":
-            self.sprite = self.pistol_sprite
-        elif self.current_weapon_name == "Shotgun":
-            self.sprite = self.shotgun_sprite
-        elif self.current_weapon_name == "Thompson":
-            self.sprite = self.thompson_sprite
-        elif self.current_weapon_name == "Bar":
-            self.sprite = self.bar_sprite
+        switch_sprite(self)
 
     def render(self, dest:pygame.Surface, x, y):
+        vec_x = math.cos(math.radians(self.knock_back_dir)) * self.knock_back_strength
+        vec_y = math.sin(math.radians(self.knock_back_dir)) * self.knock_back_strength
+        x += vec_x
+        y -= vec_y
         self.switch_sprites()
         dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)), None)
         dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
@@ -608,6 +601,10 @@ class Enemy:
     def take_damage(self, amount, source):
         self.hp -= amount
         self.front_direction = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
+
+    def knockback(self, strength, knock_dir):
+        self.knock_back_dir = knock_dir
+        self.knock_back_strength = strength
 
     def check_death(self):
         if self.hp <= 0:

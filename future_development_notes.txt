@@ -2,3 +2,5 @@ Any new sprite files relevant to your game will need to be added to the ALL_SPRI
 Be careful of redundant code.
 
 For cutscene objects: quite literally create a variable called TRIGGERED, when it's True, their action function is activated
+
+This is your flagship project. So never give up!

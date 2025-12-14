@@ -25,7 +25,8 @@ class Sprite:
 
     def get_image_at(self, i:int):
         return self.images[i]
-
+    def get_image_index(self):
+        return self.image_index
     def get_image_number(self):
         return len(self.images)
 
