@@ -4,7 +4,7 @@ pygame.init()
 # Dummy screen
 srf = pygame.display.set_mode((1,1), pygame.HWSURFACE|pygame.DOUBLEBUF|pygame.RESIZABLE|pygame.NOFRAME|pygame.SCALED,vsync=1) # this will close
 
-ASP = {
+ASP:dict[str, pygame.Surface] = {
     # barrel_spr
     "BARREL_BODY" : pygame.image.load("sprites/barrel_spr/barrel_body.png"),
     "BARREL_BROKEN": pygame.image.load("sprites/barrel_spr/barrel_broken.png").convert_alpha(),
@@ -128,7 +128,11 @@ ASP = {
     "ENEMY_TOOL": pygame.image.load("sprites/Level Editor/enemy_tool.png").convert_alpha(),
     "MISCELLANEOUS": pygame.image.load("sprites/Level Editor/miscellaneous.png").convert_alpha(),
     "PENCIL": pygame.image.load("sprites/Level Editor/pencil.png").convert_alpha(),
-    "PLAYER_SPAWN": pygame.image.load("sprites/Level Editor/player_spawn.png").convert_alpha()
+    "PLAYER_SPAWN": pygame.image.load("sprites/Level Editor/player_spawn.png").convert_alpha(),
+
+    # enemy_alerted_spr
+    "ALERTED0" : pygame.image.load("sprites/enemy_alerted_spr/alerted0.png").convert_alpha(),
+    "ALERTED1": pygame.image.load("sprites/enemy_alerted_spr/alerted1.png").convert_alpha(),
 }
 
 # I don't have a work-around for this. This is the best I've got. Holy fuck

@@ -31,9 +31,16 @@ pygame.font.init()
 
 game_screen = screen.Screen(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
 draw_dest = game_screen.screen.copy()
-running = True
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("Arial", 10)
+ingame_font = pygame.font.SysFont("Arial", 7)
+
+class GameVariables:
+    running = True
+    GAME_FPS = 60
+class Performance:
+    MAX_FPS = -100000
+    MIN_FPS = 999999
 
 #######
 # Map #
@@ -113,10 +120,50 @@ all_enemy_refs = [
 LEVEL_TILES = tiles.get_tiles()
 
 # Mouse Clicking
-class user_mouse:
+class user_input:
     mouse_pressed = False
+    key_pressed = False
 
-while running:
+# All Screens:
+# - Title Screen
+# - Menu / Selection Screen
+# - Options Screen
+# - Audio / Selections Screen
+
+
+def game():
+    while GameVariables.running:
+        in_level()
+
+        # Performance
+        if pygame.key.get_pressed()[pygame.K_TAB]:
+            CURR_FPS = clock.get_fps()
+            pygame.draw.rect(draw_dest, (255, 0, 0), (0, 0, 32, 4))
+            pygame.draw.rect(draw_dest, (0, 255, 0), (0, 0, 32 * (clock.get_fps() / 60), 4))
+
+            # Max FPS
+            if CURR_FPS > Performance.MAX_FPS:
+                Performance.MAX_FPS = CURR_FPS
+            if CURR_FPS < Performance.MIN_FPS:
+                Performance.MIN_FPS = CURR_FPS
+            max_fps = font.render(f"max fps: {Performance.MAX_FPS}", False, (255, 255, 255))
+            min_fps = font.render(f"min fps: {Performance.MIN_FPS}", False, (255, 255, 255))
+            max_rect = max_fps.get_rect(topleft=(0, 8))
+            min_rect = min_fps.get_rect(topleft=(0, 16))
+            draw_dest.blit(max_fps, max_rect)
+            draw_dest.blit(min_fps, min_rect)
+        else:
+            # MEMORY:
+            memory_amount = font.render(f"{psutil.Process().memory_info().rss / 1024 ** 2}", False, (255, 255, 255))
+            memory_rect = memory_amount.get_rect(topleft=(0, 0))
+            draw_dest.blit(memory_amount, memory_rect)
+
+        # Resizing Screen
+        game_screen.screen.blit(pygame.transform.scale_by(pygame.transform.scale(draw_dest, game_screen.get_dimensions()), settings.zoom), (gameCamera.camera_shake_vector(), gameCamera.camera_shake_vector()))
+        pygame.display.flip()
+        clock.tick(GameVariables.GAME_FPS)
+
+def in_level():
     ####################
     # ORDERING SPRITES #
     ####################
@@ -130,30 +177,49 @@ while running:
     mx, my = utilityfuncs.mouse_xy_transformation(draw_dest, game_screen.screen)
     for event in pygame.event.get():
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
-            running = False
+            GameVariables.running = False
 
         ####################################
         # EVERYTHING INTERACTING WITH GAME #
         ####################################
-        if pygame.MOUSEBUTTONDOWN:
-            if not pygame.mouse.get_pressed()[0]:
-                user_mouse.mouse_pressed = False
+        if not pygame.mouse.get_pressed()[0]:
+            user_input.mouse_pressed = False
 
-            if pygame.mouse.get_pressed()[0] and not user_mouse.mouse_pressed:
-                clicking_on_player = False
-                _x = c_x * settings.cell_dimension
-                _y = c_y * settings.cell_dimension
-                # Interacting with the player squad
-                for sq in player_enemies.SquadMan.squad_list:
-                    sq_rect = pygame.Rect(sq.x-4-_x, sq.y-9-_y, 8, 16)#sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
-                    if sq_rect.collidepoint(mx, my):
-                        clicking_on_player = True
-                        sq.being_used = not sq.being_used
+        if pygame.mouse.get_pressed()[0] and not user_input.mouse_pressed:
+            clicking_on_player = False
+            _x = c_x * settings.cell_dimension
+            _y = c_y * settings.cell_dimension
+            # Interacting with the player squad
+            for sq in player_enemies.SquadMan.squad_list:
+                sq_rect = pygame.Rect(sq.x-4-_x, sq.y-9-_y, 8, 16)#sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
+                if sq_rect.collidepoint(mx, my):
+                    clicking_on_player = True
+                    sq.being_used = not sq.being_used
 
-                user_mouse.mouse_pressed = True
-                if not clicking_on_player:
-                    if LoadedScene.loaded_map[int(my/settings.cell_dimension)+c_y][int(mx/settings.cell_dimension)+c_x] == 0:
-                        p.move_squad(mx+_x, my+_y, LoadedScene.loaded_map)
+            user_input.mouse_pressed = True
+            if not clicking_on_player:
+                if LoadedScene.loaded_map[int(my/settings.cell_dimension)+c_y][int(mx/settings.cell_dimension)+c_x] == 0:
+                    p.move_squad(mx+_x, my+_y, LoadedScene.loaded_map)
+
+        # Selecting soldiers individually
+        all_soldiers_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
+        squad_list = player_enemies.SquadMan.squad_list
+        any_keys_being_pressed = False
+        for i in range(len(all_soldiers_keys)):
+            if pygame.key.get_pressed()[i]:
+                any_keys_being_pressed = True
+
+        if not any_keys_being_pressed:
+            user_input.key_pressed = False
+        for i in range(len(squad_list)):
+            squadMan = player_enemies.SquadMan.squad_list
+            if not user_input.key_pressed:
+                if pygame.key.get_pressed()[all_soldiers_keys[i]]:
+                    user_input.key_pressed = True
+                    squadMan[i].being_used = True
+                    for j in range(len(squad_list)):
+                        if j != i:
+                            squadMan[j].being_used = False
 
     ###############
     # ALL CAMERAS #
@@ -184,6 +250,7 @@ while running:
                 draw_dest.blit(shadow_surf, shadow_rect)
                 draw_dest.blit(tile_spr, tile_rect)
 
+    # Drawing everything else
     for scene_points in LoadedScene.draw_stack:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
@@ -195,9 +262,12 @@ while running:
     for sq in player_enemies.SquadMan.squad_list:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
-        # sq_rect = sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
-        # pygame.draw.rect(draw_dest, (255, 255, 255), sq_rect)
-        # sq.render(draw_dest, sq.xy()[0]-_x, sq.xy()[1]-_y)
+        col = (255, 0, 0)
+        if sq.being_used:
+            col = (0, 255, 0)
+        num = ingame_font.render(str(player_enemies.SquadMan.squad_list.index(sq)+1), False, col)
+        num_rect = num.get_rect(center=(sq.x-_x, sq.y-_y-16))
+        draw_dest.blit(num, num_rect)
         md_dir = utilityfuncs.point_direction(sq.x-_x, sq.y-_y, mx, my)
         sq.action(LoadedScene.loaded_map)
         sq.firing(md_dir)
@@ -205,6 +275,11 @@ while running:
 
     # All enemies
     for e in player_enemies.enemy_list:
+        _x = c_x * settings.cell_dimension
+        _y = c_y * settings.cell_dimension
+        # enemy_state = font.render(str(e.state), False, (255, 0, 0))
+        # rect = enemy_state.get_rect(center=(e.x-_x, e.y-_y-16))
+        # draw_dest.blit(enemy_state, rect)
         e.action()
         e.check_death()
 
@@ -251,22 +326,10 @@ while running:
         pygame.draw.line(draw_dest, (255, 0, 0), (settings.WINDOW_WIDTH-_x-1, settings.WINDOW_HEIGHT-w-_y-1),
                      (settings.WINDOW_WIDTH-_x-1, settings.WINDOW_HEIGHT+w-_y-1), 2)
 
-    # Performance
-    if pygame.key.get_pressed()[pygame.K_TAB]:
-        pygame.draw.rect(draw_dest, (255, 0, 0), (0, 0, 32, 4))
-        pygame.draw.rect(draw_dest, (0, 255, 0), (0, 0, 32 * (clock.get_fps()/60), 4))
+    #
 
-
-    memory_amount = font.render(f"{psutil.Process().memory_info().rss    / 1024 ** 2}", False, (255, 255, 255))
-    memory_rect = memory_amount.get_rect(topleft=(0, 0))
-    draw_dest.blit(memory_amount, memory_rect)
-
-
-    # Resizing Screem
-    game_screen.screen.blit(pygame.transform.scale_by(pygame.transform.scale(draw_dest, game_screen.get_dimensions()), settings.zoom), (gameCamera.camera_shake_vector(), gameCamera.camera_shake_vector()))
-
-    pygame.display.flip()
-    clock.tick(60)
+if __name__ == "__main__":
+    game()
 
 LoadedScene.draw_stack.clear()
 print(pygame.display.Info())
@@ -281,3 +344,4 @@ print("CPU usage (%):", psutil.cpu_percent(interval=1))
 ram = psutil.virtual_memory()
 print("RAM usage (%):", ram.percent)
 print("RAM used (GB):", round(ram.used / 1e9, 2))
+pygame.quit()

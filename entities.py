@@ -15,7 +15,7 @@ import ALL_SPRITES
 # ENTITIES ARE THINGS THAT ACT AS A STIMULUS TO THE ENVIRONMENT AROUND THEM.
 # SOUND SOURCES ARE, FOR SOME REASON, NOT CONSIDERED ENTITIES?
 
-GRENADE_DAMAGE = 200
+GRENADE_DAMAGE = 130
 MAP_GEOMETRY:list[list[int]]|None = None
 class Grenade:
     def __init__(self, x, y, direction, targets:list, speed=5):
@@ -145,12 +145,13 @@ class Smoke:
 
 class SoundSource:
     all_sounds_sources:list = []
-    def __init__(self, x, y, radius):
+    def __init__(self, x, y, radius, sound_tag="GUNSHOT"):
         self.x = x
         self.y = y
         self.radius = radius
         self.num_alert = 3
         self.references = []
+        self.sound_tag = sound_tag
         SoundSource.all_sounds_sources.append(self)
     def destroy(self):
         deletor.Deleter.request_delete(self, SoundSource.all_sounds_sources)

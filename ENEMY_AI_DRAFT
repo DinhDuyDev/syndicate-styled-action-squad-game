@@ -1,0 +1,11 @@
+Enemy AI Basics:
+IDLE:
+    - If a gunshot is heard, then go to the location of the gunshot.
+    - If a footstep is heard, then go to the location of the footstep.
+        - DRAW SPRITES FOR THE ENEMY AI INSPECTING THE ENVIRONMENT.
+    - If a player is seen, the other enemies nearby are alerted to the position as well.
+        - DRAW SPRITES FOR THE AI POINTING OUT THE PLAYER.
+    - If an enemy dies, and they are unseen, their bodies are immediately checked upon.
+        - MAKE A STATE OF THE ENEMY AI INSPECTING THE BODY.
+
+- CHECK IF THE AI IS CYCLICAL.

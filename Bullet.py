@@ -33,12 +33,12 @@ class PlayerBullet:
                 effects.MuzzleFlash(self.x, self.y)
                 self.range = -1000 # end the movement
                 # Create bullet holes
-                obstructed = False
-                for hole in effects.BulletHole.all_bullet_holes:
-                    if hole.get_hitbox().collidepoint(self.x, self.y):
-                        obstructed = True
-                if not obstructed:
-                    effects.BulletHole(self.x+vec_x*1.5, self.y-vec_y*1.5)
+                # obstructed = False
+                # for hole in effects.BulletHole.all_bullet_holes:
+                #     if hole.get_hitbox().collidepoint(self.x, self.y):
+                #         obstructed = True
+                # if not obstructed:
+                #     effects.BulletHole(self.x+vec_x*1.5, self.y-vec_y*1.5)
 
             else:
                 for e in enemy_instances:

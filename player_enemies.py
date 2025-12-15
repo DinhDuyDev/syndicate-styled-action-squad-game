@@ -1,5 +1,7 @@
 import pygame
 import math
+
+import ALL_SPRITES
 import pathfind
 import settings
 import utilityfuncs
@@ -107,7 +109,7 @@ def fire_gun(obj, direction):
             _inaccuracies = wep.inaccuracy
             _lives = wep.lives
             _projectile_type = wep.projectile_type
-            _create_ray = wep.create_ray
+            _create_ray = True#wep.create_ray
             if _projectile_type == "GRENADE":
                 entities.Grenade(obj.x+vec_x, obj.y - vec_y, md_dir, SquadMan.squad_list + enemy_list)
             else:
@@ -135,6 +137,7 @@ def switch_sprite(obj):
         obj.sprite = obj.grenade_sprite
 
 class SquadMan:
+    MAX_SQUAD = 4
     squad_list:list = []
     squad_footstep_counter = 0
     @classmethod
@@ -150,7 +153,7 @@ class SquadMan:
         if SquadMan.squad_footstep_counter >= 30 * (1/spd_modifier):
             for e in SquadMan.squad_list:
                 if e.being_used and len(e.move_path) != 0:
-                    entities.SoundSource(e.x, e.y, 10 * (6 / spd_modifier ** 1.2)) # Making footstep noises
+                    entities.SoundSource(e.x, e.y, 10 * (6 / spd_modifier ** 2)) # Making footstep noises
                     break
             SquadMan.squad_footstep_counter = 0
         else:
@@ -158,7 +161,8 @@ class SquadMan:
 
     def __init__(self, loc:tuple[float, float]):
         self.x, self.y = loc
-        self.hp = 100
+        self.max_hp = 100
+        self.hp = self.max_hp
         self.dest_x = self.x
         self.dest_y = self.y
 
@@ -193,7 +197,7 @@ class SquadMan:
         self.knock_back_strength = 0
         self.knock_back_dir = 0
 
-        self.current_weapon_name = "Thompson"#random.choice(["Shotgun", "Revolver", "Pistol", "Thompson"])
+        self.current_weapon_name = "Thompson"#random.choice(["Shotgun", "Revolver", "Pistol", "Thompson", "Bar", "GrenadeLauncher"])
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
@@ -212,7 +216,7 @@ class SquadMan:
         return self.x, self.y
 
     def action(self, m:list[list[int]]):
-        self.hp = 115
+        # self.hp = 115
         if self.knock_back_strength >= 0.001:
             self.knock_back_strength *= 0.9
             self.leg_sprite.set_image_speed(4/30)
@@ -259,12 +263,18 @@ class SquadMan:
         self.switch_sprites()
         dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)))
         dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
-        if self.being_used:
-            pygame.draw.rect(dest, (0, 255, 255), (x-1, y-7, 2, 2))
-        else:
-            pygame.draw.rect(dest, (255, 0, 255), (x-1, y-7, 2, 2))
+        # if self.being_used:
+        #     pygame.draw.rect(dest, (0, 255, 255), (x-1, y-7, 2, 2))
+        # else:
+        #     pygame.draw.rect(dest, (255, 0, 255), (x-1, y-7, 2, 2))
+
+        # Health
         pygame.draw.rect(dest, (255, 0, 0), (x - 5, y - 9, 10, 2))
-        pygame.draw.rect(dest, (0, 255, 0), (x - 5, y - 9, 10 * self.hp / 100, 2))
+        pygame.draw.rect(dest, (0, 255, 0), (x - 5, y - 9, 10 * self.hp / self.max_hp, 2))
+
+        pygame.draw.rect(dest, (0, 0, 0), (x - 10, y-3, 2, 13))
+        r = self.cooldown / self.get_weapon().fire_cooldown
+        pygame.draw.rect(dest, (255, 255, 255), (x - 10, y+10 - 13 * r, 2, 13 * r))
 
     def take_damage(self, amount, source=None):
         self.hp -= amount
@@ -307,11 +317,11 @@ class SquadMan:
 
 def move_squad(x, y, m):
     sq_ls = SquadMan.squad_list
-
+    num_active = SquadMan.nums_active() if SquadMan.nums_active() > 0 else 1
     map_width = len(m[0])
     map_height = len(m)
     d = 45
-    dist_travel = 7
+    dist_travel = 7 * (num_active / SquadMan.MAX_SQUAD)
 
     for sq_m in sq_ls:
         if sq_m.being_used:
@@ -322,7 +332,7 @@ def move_squad(x, y, m):
                 if m[ty][tx] == 0:
                     sq_m.set_dest(dx, dy, m)
                     sq_m.focused = True
-        d += 90
+        d +=  360 / num_active
 
 
 class Enemy:
@@ -345,7 +355,7 @@ class Enemy:
         self.references = []
 
         self.inaccuracy_multiplier = 1
-        self.surprise_factor = 3
+        self.surprise_factor = 90
 
         all_sprs = gen_all_sprites()
 
@@ -363,6 +373,8 @@ class Enemy:
                 "MOBSTER_LEG_NORMAL"
             )
         )
+
+        self.alerted_saw_player = 0
 
         self.current_weapon_name = weapon_type
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
@@ -427,20 +439,33 @@ class Enemy:
         self.dest_x, self.dest_y = self.x, self.y
         self.move_path.clear()
 
+    def alert_others(self):
+        alert_num = 2
+        for e in enemy_list:
+            if utilityfuncs.point_distance(self.x, self.y, e.x, e.y) < 60 and alert_num > 0:
+                if type(self) is type(e):
+                    e.target_x = self.target_x
+                    e.target_y = self.target_y
+                    e.front_direction = utilityfuncs.point_direction(e.x, e.y, e.target_x, e.target_y)
+                    e.set_dest(self.target_x, self.target_y, MAP_GEOMETRY) # This works
+                    print("Alerted others")
+                    alert_num -= 1
+
     def action(self):
-        m = MAP_GEOMETRY
         self.switch_sprites()
         if self.state == "IDLE":
             if self.sound_heard is not None:
                 self.state = "DECISION"
                 self.clear_variable_space()
 
-            if self.seeing_enemy(SquadMan.squad_list, m):
+            if self.seeing_enemy(SquadMan.squad_list, MAP_GEOMETRY):
                 self.state = "ATTACK"
                 self.move_path.clear()
                 self.cooldown = -20
                 self.inaccuracy_multiplier = self.surprise_factor
                 self.clear_variable_space()
+                self.alerted_saw_player = 5
+                self.alert_others()
 
             self.variable_space[0] += 1
             if self.variable_space[0] >= 1 * 60:
@@ -454,9 +479,8 @@ class Enemy:
                 # if utilityfuncs.point_distance(self.x, self.y, self.sound_heard.x, self.sound_heard) > 90:
                 __x = int(self.sound_heard.x/settings.cell_dimension)
                 __y = int(self.sound_heard.y/settings.cell_dimension)
-                if m[__y][__x] == 0:
-                    print("Can move to player")
-                    self.set_dest(self.sound_heard.x, self.sound_heard.y, m)
+                if MAP_GEOMETRY[__y][__x] == 0:
+                    self.set_dest(self.sound_heard.x, self.sound_heard.y, MAP_GEOMETRY)
                     self.clear_variable_space()
                     self.sound_heard = None
                     self.state = "MOVE_TO_WHERE_LAST_SEEN_ENEMY"
@@ -478,40 +502,44 @@ class Enemy:
                     self.clear_variable_space()
                 else:
                     self.variable_space[1] += 1
-                    if self.variable_space[1] >= 1 * 30 + self.variable_space[2]:
+                    if self.variable_space[1] >= 0.5 * 30 + self.variable_space[2]:
                         # Freakout cooldown
                         self.variable_space[2] += 20
                         __search_range = 20
                         self.look_around(45)
-                        self.move_forward_a_little(m, __search_range)
+                        self.move_forward_a_little(MAP_GEOMETRY, __search_range)
                         self.variable_space[1] = 0
 
             # Seeing player then destroy them
-            if self.seeing_enemy(SquadMan.squad_list, m):
+            if self.seeing_enemy(SquadMan.squad_list, MAP_GEOMETRY):
                 self.state = "ATTACK"
+                self.alerted_saw_player = 5
                 self.inaccuracy_multiplier = self.surprise_factor
                 self.move_path.clear()
-                self.cooldown = 1000 # Already expected the enemy
+                self.cooldown = 0 # Already expected the enemy
                 self.clear_variable_space()
+                self.alert_others()
 
         elif self.state == "ATTACK":
             # Move around a little
             self.inaccuracy_multiplier = max(self.inaccuracy_multiplier * 0.9, 1)
             __d = utilityfuncs.point_direction(self.x, self.y, self.target_x, self.target_y)
-            if self.seeing_enemy(SquadMan.squad_list, m):
+            if self.seeing_enemy(SquadMan.squad_list, MAP_GEOMETRY):
                 self.sprite.set_image_index(int(__d / 45))
-                self.firing(__d)
+                self.firing(__d + random.randrange(-1, 1) * self.inaccuracy_multiplier)
                 self.stop_moving()
             else:
                 self.is_firing = False
                 self.state = "MOVE_TO_WHERE_LAST_SEEN_ENEMY" # when going to where enemy is last seen, do not have an empty move path
                 self.clear_variable_space()
-                self.set_dest(self.target_x, self.target_y, m)
+                self.set_dest(self.target_x, self.target_y, MAP_GEOMETRY)
                 self.set_speed_factor(1)
                 self.sound_heard = None
 
         # elif self.state == "WAIT_AMBUSH":
-        self.movement(m)
+        self.movement(MAP_GEOMETRY)
+        if self.alerted_saw_player > 0:
+            self.alerted_saw_player = max(self.alerted_saw_player - 0.1, 0)
 
     def look_around(self, _range):
         self.front_direction += random.choice([-_range, _range])
@@ -536,10 +564,15 @@ class Enemy:
         fire_gun(self, direction)
 
     def hear_sound(self, snd:entities.SoundSource):
-        chance = random.randint(0, 100)
-        if chance < 33:
-            if utilityfuncs.point_distance(self.x, self.y, snd.x, snd.y) < snd.radius:
+        # chance = random.randint(0, 100)
+        # if chance < 33:
+        dist = utilityfuncs.point_distance(self.x, self.y, snd.x, snd.y)
+        if dist < snd.radius:
+            if snd.sound_tag == "GUNSHOT":
                 self.sound_heard = snd
+            elif snd.sound_tag == "ENEMY_DEATH":
+                if not utilityfuncs.line_of_sight(self.x, self.y, snd.x, snd.y, MAP_GEOMETRY):
+                    self.sound_heard  = snd
 
     def get_weapon(self):
         return self.current_weapon
@@ -598,9 +631,26 @@ class Enemy:
         pygame.draw.rect(dest, (255, 0, 0), (x-5, y-9, 10, 2))
         pygame.draw.rect(dest, (0, 255, 0), (x-5, y-9, 10*self.hp/100, 2))
 
+        # Alerted
+        if self.alerted_saw_player > 0:
+            alr_spr = ALL_SPRITES.ASP["ALERTED0"]
+            fluctuate = random.randint(0, 100)
+            if fluctuate <= 50:
+                alr_spr = ALL_SPRITES.ASP["ALERTED1"]
+            alr_rect = alr_spr.get_rect(center=(x, y-8))
+            dest.blit(pygame.transform.scale_by(alr_spr, 0.5), alr_rect)
+
+        # Target line
+        dx, dy = self.target_x - self.x, self.target_y - self.y
+        # pygame.draw.line(dest, (255, 255, 0), (x, y), (x+dx, y+dy))
+
     def take_damage(self, amount, source):
-        self.hp -= amount
-        self.front_direction = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
+        source_dir = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
+        damage_multiplier = (abs(self.front_direction - source_dir) / 180) * 1.25 + 1
+        print(f"{amount} : {amount * damage_multiplier}")
+        self.hp -= amount * damage_multiplier
+        self.front_direction = source_dir
+        self.inaccuracy_multiplier = self.surprise_factor
 
     def knockback(self, strength, knock_dir):
         self.knock_back_dir = knock_dir
@@ -611,6 +661,7 @@ class Enemy:
             self.destroy()
 
     def destroy(self):
+        entities.SoundSource(self.x, self.y,  150, sound_tag="ENEMY_DEATH")
         for l in self.references:
             deletor.Deleter.request_delete(self, l)
         deletor.Deleter.request_delete(self, enemy_list)
