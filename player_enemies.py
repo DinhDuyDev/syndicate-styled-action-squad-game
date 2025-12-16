@@ -109,7 +109,7 @@ def fire_gun(obj, direction):
             _inaccuracies = wep.inaccuracy
             _lives = wep.lives
             _projectile_type = wep.projectile_type
-            _create_ray = True#wep.create_ray
+            _create_ray = wep.create_ray
             if _projectile_type == "GRENADE":
                 entities.Grenade(obj.x+vec_x, obj.y - vec_y, md_dir, SquadMan.squad_list + enemy_list)
             else:
@@ -461,7 +461,7 @@ class Enemy:
             if self.seeing_enemy(SquadMan.squad_list, MAP_GEOMETRY):
                 self.state = "ATTACK"
                 self.move_path.clear()
-                self.cooldown = -20
+                self.cooldown = 0
                 self.inaccuracy_multiplier = self.surprise_factor
                 self.clear_variable_space()
                 self.alerted_saw_player = 5
@@ -571,8 +571,7 @@ class Enemy:
             if snd.sound_tag == "GUNSHOT":
                 self.sound_heard = snd
             elif snd.sound_tag == "ENEMY_DEATH":
-                if not utilityfuncs.line_of_sight(self.x, self.y, snd.x, snd.y, MAP_GEOMETRY):
-                    self.sound_heard  = snd
+                self.sound_heard  = snd
 
     def get_weapon(self):
         return self.current_weapon
@@ -650,7 +649,6 @@ class Enemy:
         print(f"{amount} : {amount * damage_multiplier}")
         self.hp -= amount * damage_multiplier
         self.front_direction = source_dir
-        self.inaccuracy_multiplier = self.surprise_factor
 
     def knockback(self, strength, knock_dir):
         self.knock_back_dir = knock_dir
