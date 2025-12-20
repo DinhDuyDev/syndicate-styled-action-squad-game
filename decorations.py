@@ -1,5 +1,5 @@
 import math
-
+import copy
 import Sprites
 import pygame
 import random
@@ -363,3 +363,47 @@ class TableToppled:
 
 # All the types of decoration (just to make sure when I code the completion doesn't freak out)
 all_decoration_types = Crate|Barrel|Skull
+
+
+def misc_objects_generator(): # CAN ONLY BE USED IF A VIDEO MODE HAS BEEN SET
+    if pygame.display.get_init():
+        misc_objs_dict = {
+            "NormalCrate": Crate((0, 0)),
+            "WeaponCrate": Crate((0, 0), True),
+            "NormalCrateBroken": Crate((0, 0), destroyed=True),
+            "WeaponCrateBroken": Crate((0, 0), is_wep_crate=True, destroyed=True),
+            "Barrel": Barrel((0, 0)),
+            "BarrelBroken": Barrel((0, 0), destroyed=True),
+            "Skull": Skull((0, 0)),
+            "TableRand": Table((0, 0)),
+            "Table0": Table((0, 0),angle=0),
+            "Table45": Table((0, 0),angle=45),
+            "Table90": Table((0, 0),angle=90),
+            "Table135": Table((0, 0),angle=135),
+            "TableToppledRand": TableToppled((0, 0)),
+            "TableToppled0": TableToppled((0, 0),angle=0),
+            "TableToppled45": TableToppled((0, 0),angle=45),
+            "TableToppled90": TableToppled((0, 0),angle=90),
+            "TableToppled135": TableToppled((0, 0),angle=135),
+            "TableToppled180": TableToppled((0, 0), angle=180),
+            "TableToppled225": TableToppled((0, 0), angle=225),
+            "TableToppled270": TableToppled((0, 0), angle=270),
+            "TableToppled315": TableToppled((0, 0), angle=315),
+            "Crack1" : Crack((0, 0), crack_type=1),
+            "Crack2": Crack((0, 0), crack_type=2),
+            "Crack3": Crack((0, 0), crack_type=3)
+        }
+        return misc_objs_dict
+    return AssertionError("PYGAME DISPLAY WAS NOT INITIALIZED")
+
+# Get object from name
+def get_miscellaneous_objects(template:str):
+    if pygame.display.get_init():
+        template = template.split("->")
+        name = template[0]
+        coordinates = template[1][1:-1].split(",")
+        obj = copy.copy(misc_objects_generator()[name])
+        obj.set_xy((float(coordinates[0]), float(coordinates[1])))
+        obj.repr_name = name
+        return obj
+    return AssertionError("PYGAME DISPLAY WAS NOT INITIALIZED")

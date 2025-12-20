@@ -129,10 +129,14 @@ ASP:dict[str, pygame.Surface] = {
     "MISCELLANEOUS": pygame.image.load("sprites/Level Editor/miscellaneous.png").convert_alpha(),
     "PENCIL": pygame.image.load("sprites/Level Editor/pencil.png").convert_alpha(),
     "PLAYER_SPAWN": pygame.image.load("sprites/Level Editor/player_spawn.png").convert_alpha(),
+    "CUTSCENE_ELEMENTS" : pygame.image.load("sprites/Level Editor/cutscene_elements.png").convert_alpha(),
 
     # enemy_alerted_spr
     "ALERTED0" : pygame.image.load("sprites/enemy_alerted_spr/alerted0.png").convert_alpha(),
     "ALERTED1": pygame.image.load("sprites/enemy_alerted_spr/alerted1.png").convert_alpha(),
+
+    # trigger_spr
+    "TRIGGER" : pygame.image.load("sprites/trigger_spr/trigger.png").convert()
 }
 
 # I don't have a work-around for this. This is the best I've got. Holy fuck

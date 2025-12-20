@@ -22,7 +22,7 @@ class Level:
     def set_enemies(self, ents):
         self.enemies = [objs for objs in ents.split("//")]
 
-    def all_entities(self):
+    def all_enemies(self):
         return self.enemies
 
 class Map:
@@ -71,16 +71,12 @@ def load_level(game_map_object:Map, file_path):
                 geometry,
                 float(location[0]),
                 float(location[1]),
-                miscellaneous=miscellaneous_objects,
-                enemies=enemies
             )
+            new_map.set_miscellaneous(miscellaneous_objects)
+            new_map.set_enemies(enemies)
             # Entities
             game_map_object.add_level(new_map)
 
 
 GameMap = Map()
 load_level(GameMap, "levels/barricaded.dmf")
-# load_level(GameMap, "levels/hotel.dmf")
-# load_level(GameMap, "levels/prison.dmf")
-# load_level(GameMap, "levels/4room.dmf")
-# load_level(GameMap, "levels/only_crates.dmf")

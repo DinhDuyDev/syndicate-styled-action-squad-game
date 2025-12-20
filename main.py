@@ -3,7 +3,6 @@ import weakref
 import psutil
 import pygame
 import decorations
-import enemies_gen
 import map
 import player_enemies
 import screen
@@ -12,7 +11,6 @@ import player_enemies as p
 import tiles
 import utilityfuncs
 import camera
-import misc_objs_gen
 import Bullet
 import effects
 import deletor
@@ -81,13 +79,15 @@ def load_level(index: int):
     LoadedScene.all_miscellaneous_objects.clear()
     # LoadedScene.all_enemies.clear()
     loaded_miscellaneous = curr_map.all_miscellaneous_objects()
-    loaded_enemies = curr_map.all_entities()
+    loaded_enemies = curr_map.all_enemies()
 
     for x in loaded_miscellaneous:
-        LoadedScene.all_miscellaneous_objects.append(misc_objs_gen.get_miscellaneous_objects(x))
+        if x != "":
+            LoadedScene.all_miscellaneous_objects.append(decorations.get_miscellaneous_objects(x))
 
     for x in loaded_enemies:  # Loaded
-        enemies_gen.get_enemies(x)
+        if x != "":
+            player_enemies.get_enemies(x)
         # e.references.append(LoadedScene.all_enemies)
         # LoadedScene.all_enemies.append(e)
 
@@ -129,8 +129,6 @@ class user_input:
 # - Menu / Selection Screen
 # - Options Screen
 # - Audio / Selections Screen
-
-
 def game():
     while GameVariables.running:
         in_level()
@@ -146,6 +144,7 @@ def game():
                 Performance.MAX_FPS = CURR_FPS
             if CURR_FPS < Performance.MIN_FPS:
                 Performance.MIN_FPS = CURR_FPS
+
             max_fps = font.render(f"max fps: {Performance.MAX_FPS}", False, (255, 255, 255))
             min_fps = font.render(f"min fps: {Performance.MIN_FPS}", False, (255, 255, 255))
             max_rect = max_fps.get_rect(topleft=(0, 8))
@@ -212,15 +211,25 @@ def in_level():
         if not any_keys_being_pressed:
             user_input.key_pressed = False
         for i in range(len(squad_list)):
-            squadMan = player_enemies.SquadMan.squad_list
+            squad_man = player_enemies.SquadMan.squad_list
             if not user_input.key_pressed:
                 if pygame.key.get_pressed()[all_soldiers_keys[i]]:
                     user_input.key_pressed = True
-                    squadMan[i].being_used = True
+                    squad_man[i].being_used = True
                     for j in range(len(squad_list)):
                         if j != i:
-                            squadMan[j].being_used = False
+                            squad_man[j].being_used = False
 
+        # Activating and deactivating all squad members:
+        if pygame.key.get_pressed()[pygame.K_SPACE] and not user_input.mouse_pressed:
+            user_input.mouse_pressed = True
+            squad_man = player_enemies.SquadMan.squad_list
+            if player_enemies.SquadMan.nums_active() != 4:
+                for sq in squad_man:
+                    sq.being_used = True
+            else:
+                for sq in squad_man:
+                    sq.being_used = False
     ###############
     # ALL CAMERAS #
     ###############
@@ -310,7 +319,7 @@ def in_level():
         # For ALL ENEMIES
         for enemy in player_enemies.enemy_list:
             enemy.hear_sound(snd)
-        pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
+        # pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
         snd.destroy()
 
     # Anything requesting to be deleted will be deleted here

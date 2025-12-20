@@ -9,12 +9,11 @@ from pathlib import Path
 import tiles
 import decorations
 import copy
-import misc_objs_gen
-import enemies_gen
 import deletor
 import weakref
 import gc
 import ALL_SPRITES
+import cutscene_elements
 
 pygame.init()
 pygame.font.init()
@@ -63,12 +62,13 @@ TOOLS = {
     "Player_Spawn": ALL_SPRITES.ASP["PLAYER_SPAWN"],
     "Misc": ALL_SPRITES.ASP["MISCELLANEOUS"],
     "Enemy_Place": ALL_SPRITES.ASP["ENEMY_TOOL"],
+    "Cutscene_Elements" : ALL_SPRITES.ASP["CUTSCENE_ELEMENTS"]
 }
 tool_mode = "Pencil"
 
 # Miscellaneous Objects (AKA decorators) and Entities Generator
-MISC_OBJECTS = misc_objs_gen.misc_objects_generator()
-ENEMY_OBJECTS = enemies_gen.enemies_generator()
+MISC_OBJECTS = decorations.misc_objects_generator()
+ENEMY_OBJECTS = player_enemies.enemies_generator()
 selected_object = "NormalCrate"
 selected_entity = "EnemyMobsterPistol"
 mouse_held_down = False
@@ -143,11 +143,11 @@ def load_level(pth):
 
             all_miscellaneous = loaded_data_dict["MISCELLANEOUS"].split("//") if loaded_data_dict["MISCELLANEOUS"] != "" else ""
             for misc_o in all_miscellaneous:
-                misc_objs.append(misc_objs_gen.get_miscellaneous_objects(misc_o))
+                misc_objs.append(decorations.get_miscellaneous_objects(misc_o))
 
             all_enemies = loaded_data_dict["ENEMIES"].split("//") if loaded_data_dict["ENEMIES"] != "" else ""
             for e_o in all_enemies:
-                e_list.append(enemies_gen.get_enemies(e_o))
+                e_list.append(player_enemies.get_enemies(e_o))
 rf = None
 rf_misc = None
 

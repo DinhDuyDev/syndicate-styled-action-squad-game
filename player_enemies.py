@@ -1,6 +1,6 @@
 import pygame
 import math
-
+import copy
 import ALL_SPRITES
 import pathfind
 import settings
@@ -117,7 +117,7 @@ def fire_gun(obj, direction):
                                     deviation=_inaccuracies, lives=_lives, create_ray=_create_ray)
                 effects.MuzzleFlash(obj.xy()[0] + vec_x, obj.xy()[1] - vec_y)
 
-        entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / 20) * 30)
+        entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / (base_ref+1)) * 30)
         obj.sprite.set_image_index(d)
         shake_factor = total_damage / 20
         camera.Camera.activeCam.screen_shake(shake_factor * 3)
@@ -161,7 +161,7 @@ class SquadMan:
 
     def __init__(self, loc:tuple[float, float]):
         self.x, self.y = loc
-        self.max_hp = 100
+        self.max_hp = 50
         self.hp = self.max_hp
         self.dest_x = self.x
         self.dest_y = self.y
@@ -278,6 +278,7 @@ class SquadMan:
 
     def take_damage(self, amount, source=None):
         self.hp -= amount
+        camera.Camera.activeCam.screen_shake(((amount / 10) ** 0.5) * 3)
 
     def check_death(self):
         if self.hp < 0:
@@ -443,13 +444,14 @@ class Enemy:
         alert_num = 2
         for e in enemy_list:
             if utilityfuncs.point_distance(self.x, self.y, e.x, e.y) < 60 and alert_num > 0:
-                if type(self) is type(e):
-                    e.target_x = self.target_x
-                    e.target_y = self.target_y
-                    e.front_direction = utilityfuncs.point_direction(e.x, e.y, e.target_x, e.target_y)
-                    e.set_dest(self.target_x, self.target_y, MAP_GEOMETRY) # This works
-                    print("Alerted others")
-                    alert_num -= 1
+                if utilityfuncs.line_of_sight(self.x, self.y, e.x, e.y, MAP_GEOMETRY):
+                    if type(self) is type(e):
+                        e.target_x = self.target_x
+                        e.target_y = self.target_y
+                        e.front_direction = utilityfuncs.point_direction(e.x, e.y, e.target_x, e.target_y)
+                        e.set_dest(self.target_x, self.target_y, MAP_GEOMETRY) # This works
+                        print("Alerted others")
+                        alert_num -= 1
 
     def action(self):
         self.switch_sprites()
@@ -526,7 +528,7 @@ class Enemy:
             __d = utilityfuncs.point_direction(self.x, self.y, self.target_x, self.target_y)
             if self.seeing_enemy(SquadMan.squad_list, MAP_GEOMETRY):
                 self.sprite.set_image_index(int(__d / 45))
-                self.firing(__d + random.randrange(-1, 1) * self.inaccuracy_multiplier)
+                self.firing(__d + random.randrange(-1, 1)) #* self.inaccuracy_multiplier)
                 self.stop_moving()
             else:
                 self.is_firing = False
@@ -646,9 +648,9 @@ class Enemy:
     def take_damage(self, amount, source):
         source_dir = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
         damage_multiplier = (abs(self.front_direction - source_dir) / 180) * 1.25 + 1
-        print(f"{amount} : {amount * damage_multiplier}")
         self.hp -= amount * damage_multiplier
         self.front_direction = source_dir
+        self.inaccuracy_multiplier = self.surprise_factor/2
 
     def knockback(self, strength, knock_dir):
         self.knock_back_dir = knock_dir
@@ -680,3 +682,27 @@ class Enemy:
         return self.y == other.y
 
 all_enemies_type = Enemy
+
+
+def enemies_generator(): # CAN ONLY BE USED IF A VIDEO MODE HAS BEEN SET
+    if pygame.display.get_init():
+        misc_objs_dict = {
+            "EnemyMobsterPistol": Enemy((0, 0), weapon_type="Pistol", exclude=True),
+            "EnemyMobsterShotgun": Enemy((0, 0), weapon_type="Shotgun", exclude=True),
+            "EnemyMobsterThompson": Enemy((0, 0), weapon_type="Thompson", exclude=True),
+            "EnemyMobsterBar": Enemy((0, 0), weapon_type="Bar", exclude=True)
+        }
+        return misc_objs_dict
+    return AssertionError("PYGAME DISPLAY WAS NOT INITIALIZED")
+
+# Get object from name
+def get_enemies(template:str):
+    if pygame.display.get_init():
+        template = template.split("->")
+        name = template[0]
+        coordinates = template[1][1:-1].split(",")
+        obj = copy.copy(enemies_generator()[name])
+        obj.set_xy((float(coordinates[0]), float(coordinates[1])))
+        obj.repr_name = name
+        return obj
+    return AssertionError("PYGAME DISPLAY WAS NOT INITIALIZED")
