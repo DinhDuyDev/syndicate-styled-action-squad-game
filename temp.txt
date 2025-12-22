@@ -1,3 +1,8 @@
-sprites/smoke_spr/smoke1.png
-sprites/smoke_spr/smoke2.png
-sprites/smoke_spr/smoke3.png
+sprites/soldier_spr/soldier_0_revolver.png
+sprites/soldier_spr/soldier_45_revolver.png
+sprites/soldier_spr/soldier_90_revolver.png
+sprites/soldier_spr/soldier_135_revolver.png
+sprites/soldier_spr/soldier_180_revolver.png
+sprites/soldier_spr/soldier_225_revolver.png
+sprites/soldier_spr/soldier_270_revolver.png
+sprites/soldier_spr/soldier_315_revolver.png

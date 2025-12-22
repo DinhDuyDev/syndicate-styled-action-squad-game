@@ -50,6 +50,7 @@ def draw_level(lv):
         for j in range(len(lv[0])):
             print(lv[i][j], end="")
         print()
+
 # Sprites
 LEVEL_TILES = tiles.get_tiles()
 
@@ -69,11 +70,14 @@ tool_mode = "Pencil"
 # Miscellaneous Objects (AKA decorators) and Entities Generator
 MISC_OBJECTS = decorations.misc_objects_generator()
 ENEMY_OBJECTS = player_enemies.enemies_generator()
+CUTSCENE_ELEMENTS = cutscene_elements.cutscene_elements_generator()
 selected_object = "NormalCrate"
 selected_entity = "EnemyMobsterPistol"
+selected_cutscene_element = "CollideTrigger"
 mouse_held_down = False
 misc_objs:list[decorations.all_decoration_types] = []
 e_list:list = []
+cutscene_elements_list:list = []
 
 scroll_y = 0
 
@@ -288,6 +292,25 @@ while running:
 
                 draw_dest.blit(obj_spr, obj_rect)
                 index += 1
+        elif tool_mode == "Cutscene_Elements":
+            index = 0
+            for key, obj in CUTSCENE_ELEMENTS.items():
+                tx, ty = SW - 32, (index + 1) * 16 - scroll_y
+                obj_spr = obj.sprite.get_current_image()
+                obj_rect = obj_spr.get_rect(center=(tx+8, ty+8))
+                if key == selected_entity:
+                    pygame.draw.rect(draw_dest, (0, 255, 0), (tx+3, ty+3, 16, 16))
+
+                if obj_rect.collidepoint(mx, my):
+                    if pygame.mouse.get_pressed()[0]:
+                        selected_entity = key
+                        pygame.draw.rect(draw_dest, (255, 0, 255), (tx+3, ty+3, 16, 16), width=1)
+                    else:
+                        pygame.draw.rect(draw_dest, (255, 0, 255), (tx+3, ty+3, 16, 16))
+
+                draw_dest.blit(obj_spr, obj_rect)
+                index += 1
+
         else:
             for index, tile in LEVEL_TILES.items():
                 tx, ty = SW - 24, (index + 1) * 16 - scroll_y
@@ -381,23 +404,49 @@ while running:
                 new_object = None
                 mouse_held_down = True
 
+        elif tool_mode == "Cutscene_Elements":
+            _x = c_x * c_dimensions
+            _y = c_y * c_dimensions
+            if not pygame.mouse.get_pressed()[0]:
+                mouse_held_down = False
+
+            # I don't have a trackpad right now so I'm just going to put this here first
+            if pygame.mouse.get_pressed()[2]:
+                for o in cutscene_elements_list:
+                    o_rect = o.sprite.get_current_image().get_rect(center=(o.x, o.y))
+                    spawn_x, spawn_y = mx + _x, my + _y
+                    if o_rect.collidepoint(spawn_x, spawn_y):
+                        # o.destroy()
+                        deletor.Deleter.request_delete(o, cutscene_elements_list)
+
+            if pygame.mouse.get_pressed()[0] and not mouse_held_down:
+                spawn_x, spawn_y = mx + _x, my + _y
+                new_object = copy.copy(CUTSCENE_ELEMENTS[selected_cutscene_element])
+                new_object.repr_name = selected_cutscene_element
+                new_object.set_xy((spawn_x, spawn_y))
+                cutscene_elements_list.append(new_object)
+                new_object = None
+                mouse_held_down = True
+
+    _x = c_x * c_dimensions
+    _y = c_y * c_dimensions
     # Spawn Point
     if Entities.player_spawn_point != (None, None):
         sp = Entities.player_spawn_point
-        pygame.draw.circle(draw_dest, (255, 165, 0), (sp[0]-c_x*c_dimensions, sp[1]-c_y*c_dimensions), 2)
-        pygame.draw.circle(draw_dest, (255, 0, 0), (sp[0]-c_x*c_dimensions, sp[1]-c_y*c_dimensions), 10, width=1)
+        pygame.draw.circle(draw_dest, (255, 165, 0), (sp[0]-_x, sp[1]-_y), 2)
+        pygame.draw.circle(draw_dest, (255, 0, 0), (sp[0]-_x, sp[1]-_y), 10, width=1)
 
     # For decorative objects
-    _x = c_x * c_dimensions
-    _y = c_y * c_dimensions
     for o in misc_objs:
         o.render(draw_dest, o.xy()[0]-_x, o.xy()[1]-_y)
 
     # For enemies
-    _x = c_x * c_dimensions
-    _y = c_y * c_dimensions
     for e in e_list:
         e.render(draw_dest, e.xy()[0]-_x, e.xy()[1]-_y)
+
+    # For cutscene elements
+    for ce in cutscene_elements_list:
+        ce.render(draw_dest, ce.x - _x, ce.y - _y)
 
     # Deletion of anything
     deletor.Deleter.delete_all_requests()
@@ -420,6 +469,7 @@ while running:
 print(player_enemies.enemy_list)
 for i in range(100):
     gc.collect()
+
 print(len(player_enemies.enemy_list))
 print(f"Enemy Mobster Weakref: {rf}")
 print(f"Misc Weakref: {rf_misc}")

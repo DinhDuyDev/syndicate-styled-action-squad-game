@@ -24,50 +24,63 @@ def gen_all_sprites():
     return {
         "Pistol" : Sprites.Sprite(
             (
-                "MOBSTER_TORSO_0PISTOL",
-                "MOBSTER_TORSO_45PISTOL",
-                "MOBSTER_TORSO_90PISTOL",
-                "MOBSTER_TORSO_135PISTOL",
-                "MOBSTER_TORSO_180PISTOL",
-                "MOBSTER_TORSO_225PISTOL",
-                "MOBSTER_TORSO_270PISTOL",
-                "MOBSTER_TORSO_315PISTOL",
+                "SOLDIER_0_PISTOL",
+                "SOLDIER_45_PISTOL",
+                "SOLDIER_90_PISTOL",
+                "SOLDIER_135_PISTOL",
+                "SOLDIER_180_PISTOL",
+                "SOLDIER_225_PISTOL",
+                "SOLDIER_270_PISTOL",
+                "SOLDIER_315_PISTOL",
+            )
+        ),
+
+        "Revolver" : Sprites.Sprite(
+            (
+                "SOLDIER_0_REVOLVER",
+                "SOLDIER_45_REVOLVER",
+                "SOLDIER_90_REVOLVER",
+                "SOLDIER_135_REVOLVER",
+                "SOLDIER_180_REVOLVER",
+                "SOLDIER_225_REVOLVER",
+                "SOLDIER_270_REVOLVER",
+                "SOLDIER_315_REVOLVER"
             )
         ),
         "Shotgun" : Sprites.Sprite(
             (
-                "MOBSTER_TORSO_0SHOTGUN",
-                "MOBSTER_TORSO_45SHOTGUN",
-                "MOBSTER_TORSO_90SHOTGUN",
-                "MOBSTER_TORSO_135SHOTGUN",
-                "MOBSTER_TORSO_180SHOTGUN",
-                "MOBSTER_TORSO_225SHOTGUN",
-                "MOBSTER_TORSO_270SHOTGUN",
-                "MOBSTER_TORSO_315SHOTGUN",
+                "SOLDIER_0_SHOTGUN",
+                "SOLDIER_45_SHOTGUN",
+                "SOLDIER_90_SHOTGUN",
+                "SOLDIER_135_SHOTGUN",
+                "SOLDIER_180_SHOTGUN",
+                "SOLDIER_225_SHOTGUN",
+                "SOLDIER_270_SHOTGUN",
+                "SOLDIER_315_SHOTGUN",
             )
         ),
         "Thompson" : Sprites.Sprite(
             (
-                "MOBSTER_TORSO_0THOMPSON",
-                "MOBSTER_TORSO_45THOMPSON",
-                "MOBSTER_TORSO_90THOMPSON",
-                "MOBSTER_TORSO_135THOMPSON",
-                "MOBSTER_TORSO_180THOMPSON",
-                "MOBSTER_TORSO_225THOMPSON",
-                "MOBSTER_TORSO_270THOMPSON",
-                "MOBSTER_TORSO_315THOMPSON",
+                "SOLDIER_0_THOMPSON",
+                "SOLDIER_45_THOMPSON",
+                "SOLDIER_90_THOMPSON",
+                "SOLDIER_135_THOMPSON",
+                "SOLDIER_180_THOMPSON",
+                "SOLDIER_225_THOMPSON",
+                "SOLDIER_270_THOMPSON",
+                "SOLDIER_315_THOMPSON",
             )
         ),
         "Bar" : Sprites.Sprite(
             (
-                "MOBSTER_TORSO_0BAR",
-                "MOBSTER_TORSO_45BAR",
-                "MOBSTER_TORSO_90BAR",
-                "MOBSTER_TORSO_135BAR",
-                "MOBSTER_TORSO_180BAR",
-                "MOBSTER_TORSO_225BAR",
-                "MOBSTER_TORSO_270BAR",
-                "MOBSTER_TORSO_315BAR",
+                "SOLDIER_0_BAR",
+                "SOLDIER_45_BAR",
+                "SOLDIER_90_BAR",
+                "SOLDIER_135_BAR",
+                "SOLDIER_180_BAR",
+                "SOLDIER_225_BAR",
+                "SOLDIER_270_BAR",
+                "SOLDIER_315_BAR",
             )
         ),
         "GrenadeLauncher" : Sprites.Sprite(
@@ -117,16 +130,18 @@ def fire_gun(obj, direction):
                                     deviation=_inaccuracies, lives=_lives, create_ray=_create_ray)
                 effects.MuzzleFlash(obj.xy()[0] + vec_x, obj.xy()[1] - vec_y)
 
-        entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / (base_ref+1)) * 30)
+        # entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / (base_ref+1)) * 30)
         obj.sprite.set_image_index(d)
         shake_factor = total_damage / 20
-        camera.Camera.activeCam.screen_shake(shake_factor * 3)
+        # camera.Camera.activeCam.screen_shake(shake_factor * 3)
         obj.knockback((total_damage / 50) ** 0.8 + random.randint(1, 2), direction + 180)
         obj.cooldown = 0
 
 def switch_sprite(obj):
-    if obj.current_weapon_name == "Pistol" or obj.current_weapon_name == "Revolver":
+    if obj.current_weapon_name == "Pistol":
         obj.sprite = obj.pistol_sprite
+    elif obj.current_weapon_name == "Revolver":
+        obj.sprite = obj.revolver_sprite
     elif obj.current_weapon_name == "Shotgun":
         obj.sprite = obj.shotgun_sprite
     elif obj.current_weapon_name == "Thompson":
@@ -171,6 +186,7 @@ class SquadMan:
         self.references = []
 
         self.pistol_sprite = all_sprs["Pistol"]
+        self.revolver_sprite = all_sprs["Revolver"]
         self.shotgun_sprite = all_sprs["Shotgun"]
         self.thompson_sprite = all_sprs["Thompson"]
         self.bar_sprite = all_sprs["Bar"]
@@ -197,7 +213,7 @@ class SquadMan:
         self.knock_back_strength = 0
         self.knock_back_dir = 0
 
-        self.current_weapon_name = "Thompson"#random.choice(["Shotgun", "Revolver", "Pistol", "Thompson", "Bar", "GrenadeLauncher"])
+        self.current_weapon_name = "Revolver"#random.choice(["Shotgun", "Revolver", "Pistol", "Thompson", "Bar", "GrenadeLauncher"])
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
@@ -361,19 +377,14 @@ class Enemy:
         all_sprs = gen_all_sprites()
 
         self.pistol_sprite = all_sprs["Pistol"]
+        self.revolver_sprite = all_sprs["Revolver"]
         self.shotgun_sprite = all_sprs["Shotgun"]
         self.thompson_sprite = all_sprs["Thompson"]
         self.bar_sprite = all_sprs["Bar"]
         self.grenade_sprite = all_sprs["GrenadeLauncher"]
         self.sprite = self.thompson_sprite
 
-        self.leg_sprite = Sprites.Sprite(
-            (
-                "MOBSTER_LEG_LEFTUP",
-                "MOBSTER_LEG_RIGHTUP",
-                "MOBSTER_LEG_NORMAL"
-            )
-        )
+        self.leg_sprite = all_sprs["LEGS"]
 
         self.alerted_saw_player = 0
 
@@ -389,6 +400,7 @@ class Enemy:
         self.target_y = 0
 
         self.front_direction = 0
+        self.aim_direction = 0
         self.speed_factor = 1
 
         self.cooldown = 0
@@ -423,6 +435,7 @@ class Enemy:
                 self.target_y = e.xy()[1]
                 direction_to_enemy = utilityfuncs.point_direction(self.x, self.y, e.x, e.y)
                 if abs(direction_to_enemy - self.front_direction) < fov/2:
+                    self.front_direction = direction_to_enemy # Some extra things
                     return True
         return False
 
@@ -454,6 +467,7 @@ class Enemy:
                         alert_num -= 1
 
     def action(self):
+        self.aim_direction = pygame.math.lerp(self.aim_direction, self.front_direction, 0.2)
         self.switch_sprites()
         if self.state == "IDLE":
             if self.sound_heard is not None:
@@ -525,7 +539,7 @@ class Enemy:
         elif self.state == "ATTACK":
             # Move around a little
             self.inaccuracy_multiplier = max(self.inaccuracy_multiplier * 0.9, 1)
-            __d = utilityfuncs.point_direction(self.x, self.y, self.target_x, self.target_y)
+            __d = self.aim_direction# # utilityfuncs.point_direction(self.x, self.y, self.target_x, self.target_y) #
             if self.seeing_enemy(SquadMan.squad_list, MAP_GEOMETRY):
                 self.sprite.set_image_index(int(__d / 45))
                 self.firing(__d + random.randrange(-1, 1)) #* self.inaccuracy_multiplier)
@@ -642,15 +656,14 @@ class Enemy:
             dest.blit(pygame.transform.scale_by(alr_spr, 0.5), alr_rect)
 
         # Target line
-        dx, dy = self.target_x - self.x, self.target_y - self.y
-        # pygame.draw.line(dest, (255, 255, 0), (x, y), (x+dx, y+dy))
+        dx, dy = math.cos(math.radians(self.aim_direction)) * 64, -math.sin(math.radians(self.aim_direction)) * 64
+        pygame.draw.line(dest, (255, 255, 0), (x, y), (x+dx, y+dy))
 
     def take_damage(self, amount, source):
         source_dir = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
         damage_multiplier = (abs(self.front_direction - source_dir) / 180) * 1.25 + 1
         self.hp -= amount * damage_multiplier
         self.front_direction = source_dir
-        self.inaccuracy_multiplier = self.surprise_factor/2
 
     def knockback(self, strength, knock_dir):
         self.knock_back_dir = knock_dir

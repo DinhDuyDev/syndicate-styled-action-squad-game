@@ -19,6 +19,10 @@ class PlayerBullet:
         self.lives = lives
         self.hit_targets = []
         self.create_ray = create_ray
+
+        v = entities.Smoke(self.x, self.y)
+        v.direction = self.direction + random.randrange(-17, 17)
+        v.speed = random.randrange(1, 5) * 0.1
         PlayerBullet.all_bullets.append(self)
 
     def work(self, map_matrix:list[list[int]], enemy_instances:list):
@@ -39,6 +43,11 @@ class PlayerBullet:
                 #         obstructed = True
                 # if not obstructed:
                 #     effects.BulletHole(self.x+vec_x*1.5, self.y-vec_y*1.5)
+
+                v = entities.Smoke(self.x, self.y)
+                v.direction = 0
+                v.speed = 0
+                PlayerBullet.all_bullets.append(self)
 
             else:
                 for e in enemy_instances:

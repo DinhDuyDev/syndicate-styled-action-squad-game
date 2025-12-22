@@ -66,7 +66,7 @@ class Grenade:
         self.rotation_speed *= 0.9
 
         if self.cooldown > 1:
-            Smoke(self.x, self.y)
+            Smoke(self.x, self.y, decrease_multiplier=1)
             self.cooldown = 0
         else:
             self.cooldown += 1
@@ -110,7 +110,7 @@ class Explosion:
         deletor.Deleter.request_delete(self, all_entities)
 
 class Smoke:
-    def __init__(self, x, y):
+    def __init__(self, x, y, decrease_multiplier=0.97):
         self.x = x
         self.y = y
         self.sprite = Sprites.Sprite(
@@ -125,6 +125,8 @@ class Smoke:
         self.direction = random.randint(0, 360)
         self.speed = random.randint(3, 5) * 0.01
         self.sprite.set_image_speed(1/30)
+        self.scale = 1
+        self.decrease_multiplier = decrease_multiplier
         all_entities.append(self)
 
     def action(self):
@@ -134,9 +136,10 @@ class Smoke:
         if self.sprite.get_image_index() >= self.sprite.get_image_number()-1:
             self.destroy()
         self.rotation += 1
+        self.scale *= self.decrease_multiplier
 
     def render(self, dest:pygame.Surface, x,y):
-        spr = pygame.transform.rotate(self.sprite.get_current_image(), self.rotation)
+        spr = pygame.transform.scale_by(pygame.transform.rotate(self.sprite.get_current_image(), self.rotation), self.scale)
         spr_rect = spr.get_rect(center=(x, y))
         dest.blit(spr, spr_rect)
 

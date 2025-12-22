@@ -40,6 +40,19 @@ class Performance:
     MAX_FPS = -100000
     MIN_FPS = 999999
 
+##########
+# Player #
+##########
+man1 = p.SquadMan((-1000, -1000))
+man2 = p.SquadMan((-1000, -1000))
+man3 = p.SquadMan((-1000, -1000))
+man4 = p.SquadMan((-1000, -1000))
+
+##########
+# Camera #
+##########
+gameCamera = camera.Camera()
+
 #######
 # Map #
 #######
@@ -56,7 +69,6 @@ class LoadedScene:
     # Game Miscellaneous Objects
     loaded_miscellaneous = None
     all_miscellaneous_objects: list[decorations.all_decoration_types] = []
-    # all_enemies: list[entities.all_enemies_type] = [] # Doesn't include the player
 
     # Draw stack
     draw_stack:list[decorations.all_decoration_types | player_enemies.all_enemies_type | player_enemies.SquadMan] = []#entities.SquadMan.squad_list + all_entities + all_miscellaneous_objects
@@ -77,14 +89,29 @@ def load_level(index: int):
     LoadedScene.current_map = map.GameMap.get_map()
     LoadedScene.loaded_miscellaneous = curr_map.all_miscellaneous_objects()
     LoadedScene.all_miscellaneous_objects.clear()
+    player_enemies.enemy_list.clear()
+
+    # Player
+    spawn_xy = LoadedScene.current_map.get_spawn_point()
+    for sq in player_enemies.SquadMan.squad_list:
+        sq.x, sq.y = spawn_xy[0], spawn_xy[1]
+    player_enemies.move_squad(spawn_xy[0], spawn_xy[1], LoadedScene.loaded_map)
+
+    # Camera
+    spawn_xy = map.GameMap.get_map().get_spawn_point()
+    gameCamera.offset_x = int((spawn_xy[0] - settings.WINDOW_WIDTH / (2 * settings.zoom)) / settings.cell_dimension)
+    gameCamera.offset_y = int((spawn_xy[1] - settings.WINDOW_HEIGHT / (2 * settings.zoom)) / settings.cell_dimension)
+
     # LoadedScene.all_enemies.clear()
     loaded_miscellaneous = curr_map.all_miscellaneous_objects()
     loaded_enemies = curr_map.all_enemies()
 
+    # Loading Miscellaneous Objects
     for x in loaded_miscellaneous:
         if x != "":
             LoadedScene.all_miscellaneous_objects.append(decorations.get_miscellaneous_objects(x))
 
+    # Loading Miscellaneous Objects
     for x in loaded_enemies:  # Loaded
         if x != "":
             player_enemies.get_enemies(x)
@@ -93,21 +120,6 @@ def load_level(index: int):
 
 
 load_level(0)
-print(player_enemies.enemy_list)
-spawn_xy = LoadedScene.current_map.get_spawn_point()
-
-man1 = p.SquadMan(spawn_xy)
-man2 = p.SquadMan(spawn_xy)
-man3 = p.SquadMan(spawn_xy)
-man4 = p.SquadMan(spawn_xy)
-
-player_enemies.move_squad(spawn_xy[0], spawn_xy[1], LoadedScene.loaded_map)
-
-# Camera
-gameCamera = camera.Camera()
-gameCamera.offset_x = int((spawn_xy[0]-settings.WINDOW_WIDTH/(2*settings.zoom))/settings.cell_dimension)
-gameCamera.offset_y = int((spawn_xy[1]-settings.WINDOW_HEIGHT/(2*settings.zoom))/settings.cell_dimension)
-
 
 # Memory
 process = psutil.Process()
@@ -151,6 +163,7 @@ def game():
             min_rect = min_fps.get_rect(topleft=(0, 16))
             draw_dest.blit(max_fps, max_rect)
             draw_dest.blit(min_fps, min_rect)
+            # load_level(not map.GameMap.level)
         else:
             # MEMORY:
             memory_amount = font.render(f"{psutil.Process().memory_info().rss / 1024 ** 2}", False, (255, 255, 255))
@@ -319,7 +332,7 @@ def in_level():
         # For ALL ENEMIES
         for enemy in player_enemies.enemy_list:
             enemy.hear_sound(snd)
-        # pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
+        pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
         snd.destroy()
 
     # Anything requesting to be deleted will be deleted here
