@@ -130,9 +130,9 @@ def fire_gun(obj, direction):
                                     deviation=_inaccuracies, lives=_lives, create_ray=_create_ray)
                 effects.MuzzleFlash(obj.xy()[0] + vec_x, obj.xy()[1] - vec_y)
 
-        # entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / (base_ref+1)) * 30)
+        entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / (base_ref+1)) * 30)
         obj.sprite.set_image_index(d)
-        shake_factor = total_damage / 20
+        # shake_factor = total_damage / 20
         # camera.Camera.activeCam.screen_shake(shake_factor * 3)
         obj.knockback((total_damage / 50) ** 0.8 + random.randint(1, 2), direction + 180)
         obj.cooldown = 0
@@ -213,7 +213,7 @@ class SquadMan:
         self.knock_back_strength = 0
         self.knock_back_dir = 0
 
-        self.current_weapon_name = "Revolver"#random.choice(["Shotgun", "Revolver", "Pistol", "Thompson", "Bar", "GrenadeLauncher"])
+        self.current_weapon_name = random.choice(["Shotgun", "Revolver", "Pistol", "Thompson", "Bar", "GrenadeLauncher"])
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
@@ -467,7 +467,7 @@ class Enemy:
                         alert_num -= 1
 
     def action(self):
-        self.aim_direction = pygame.math.lerp(self.aim_direction, self.front_direction, 0.2)
+        self.aim_direction = pygame.math.lerp(self.aim_direction, self.front_direction, 0.1)
         self.switch_sprites()
         if self.state == "IDLE":
             if self.sound_heard is not None:
@@ -656,14 +656,15 @@ class Enemy:
             dest.blit(pygame.transform.scale_by(alr_spr, 0.5), alr_rect)
 
         # Target line
-        dx, dy = math.cos(math.radians(self.aim_direction)) * 64, -math.sin(math.radians(self.aim_direction)) * 64
-        pygame.draw.line(dest, (255, 255, 0), (x, y), (x+dx, y+dy))
+        # dx, dy = math.cos(math.radians(self.aim_direction)) * 64, -math.sin(math.radians(self.aim_direction)) * 64
+        # pygame.draw.line(dest, (255, 255, 0), (x, y), (x+dx, y+dy))
 
     def take_damage(self, amount, source):
         source_dir = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
         damage_multiplier = (abs(self.front_direction - source_dir) / 180) * 1.25 + 1
         self.hp -= amount * damage_multiplier
         self.front_direction = source_dir
+        self.inaccuracy_multiplier = self.surprise_factor/2
 
     def knockback(self, strength, knock_dir):
         self.knock_back_dir = knock_dir
