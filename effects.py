@@ -66,7 +66,7 @@ class Ray:
     def render(self, dest:pygame.Surface, x,y):
         dx = self.x_end - self.x
         dy = self.y_end - self.y
-        pygame.draw.line(dest, self.color, (x, y), (x+dx, y+dy), width=2)
+        pygame.draw.line(dest, self.color, (x, y), (x+dx, y+dy), width=1)
         self.destroy()
     def destroy(self):
         deletor.Deleter.request_delete(self, all_effects)

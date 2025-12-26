@@ -190,59 +190,58 @@ def in_level():
     for event in pygame.event.get():
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             GameVariables.running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                squad_man = player_enemies.SquadMan.squad_list
+                if player_enemies.SquadMan.nums_active() != 4:
+                    for sq in squad_man:
+                        sq.being_used = True
+                else:
+                    for sq in squad_man:
+                        sq.being_used = False
 
-        ####################################
-        # EVERYTHING INTERACTING WITH GAME #
-        ####################################
-        if not pygame.mouse.get_pressed()[0]:
-            user_input.mouse_pressed = False
+    ####################################
+    # EVERYTHING INTERACTING WITH GAME #
+    ####################################
+    if not pygame.mouse.get_pressed()[0]:
+        user_input.mouse_pressed = False
 
-        if pygame.mouse.get_pressed()[0] and not user_input.mouse_pressed:
-            clicking_on_player = False
-            _x = c_x * settings.cell_dimension
-            _y = c_y * settings.cell_dimension
-            # Interacting with the player squad
-            for sq in player_enemies.SquadMan.squad_list:
-                sq_rect = pygame.Rect(sq.x-4-_x, sq.y-9-_y, 8, 16)#sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
-                if sq_rect.collidepoint(mx, my):
-                    clicking_on_player = True
-                    sq.being_used = not sq.being_used
+    if pygame.mouse.get_pressed()[0] and not user_input.mouse_pressed:
+        clicking_on_player = False
+        _x = c_x * settings.cell_dimension
+        _y = c_y * settings.cell_dimension
+        # Interacting with the player squad
+        for sq in player_enemies.SquadMan.squad_list:
+            sq_rect = pygame.Rect(sq.x-4-_x, sq.y-9-_y, 8, 16)#sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
+            if sq_rect.collidepoint(mx, my):
+                clicking_on_player = True
+                sq.being_used = not sq.being_used
 
-            user_input.mouse_pressed = True
-            if not clicking_on_player:
-                if LoadedScene.loaded_map[int(my/settings.cell_dimension)+c_y][int(mx/settings.cell_dimension)+c_x] == 0:
-                    p.move_squad(mx+_x, my+_y, LoadedScene.loaded_map)
+        user_input.mouse_pressed = True
+        if not clicking_on_player:
+            if LoadedScene.loaded_map[int(my/settings.cell_dimension)+c_y][int(mx/settings.cell_dimension)+c_x] == 0:
+                p.move_squad(mx+_x, my+_y, LoadedScene.loaded_map)
 
-        # Selecting soldiers individually
-        all_soldiers_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
-        squad_list = player_enemies.SquadMan.squad_list
-        any_keys_being_pressed = False
-        for i in range(len(all_soldiers_keys)):
-            if pygame.key.get_pressed()[i]:
-                any_keys_being_pressed = True
+    # Selecting soldiers individually
+    all_soldiers_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
+    squad_list = player_enemies.SquadMan.squad_list
+    any_keys_being_pressed = False
+    for i in range(len(all_soldiers_keys)):
+        if pygame.key.get_pressed()[i]:
+            any_keys_being_pressed = True
 
-        if not any_keys_being_pressed:
-            user_input.key_pressed = False
-        for i in range(len(squad_list)):
-            squad_man = player_enemies.SquadMan.squad_list
-            if not user_input.key_pressed:
-                if pygame.key.get_pressed()[all_soldiers_keys[i]]:
-                    user_input.key_pressed = True
-                    squad_man[i].being_used = True
-                    for j in range(len(squad_list)):
-                        if j != i:
-                            squad_man[j].being_used = False
+    if not any_keys_being_pressed:
+        user_input.key_pressed = False
+    for i in range(len(squad_list)):
+        squad_man = player_enemies.SquadMan.squad_list
+        if not user_input.key_pressed:
+            if pygame.key.get_pressed()[all_soldiers_keys[i]]:
+                user_input.key_pressed = True
+                squad_man[i].being_used = True
+                for j in range(len(squad_list)):
+                    if j != i:
+                        squad_man[j].being_used = False
 
-        # Activating and deactivating all squad members:
-        if pygame.key.get_pressed()[pygame.K_SPACE] and not user_input.mouse_pressed:
-            user_input.mouse_pressed = True
-            squad_man = player_enemies.SquadMan.squad_list
-            if player_enemies.SquadMan.nums_active() != 4:
-                for sq in squad_man:
-                    sq.being_used = True
-            else:
-                for sq in squad_man:
-                    sq.being_used = False
     ###############
     # ALL CAMERAS #
     ###############
@@ -286,7 +285,7 @@ def in_level():
         _y = c_y * settings.cell_dimension
         col = (255, 0, 0)
         if sq.being_used:
-            col = (0, 255, 0)
+            col = (58, 255, 0)
         num = ingame_font.render(str(player_enemies.SquadMan.squad_list.index(sq)+1), False, col)
         num_rect = num.get_rect(center=(sq.x-_x, sq.y-_y-16))
         draw_dest.blit(num, num_rect)

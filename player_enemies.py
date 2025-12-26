@@ -20,7 +20,7 @@ MAP_GEOMETRY:list[list[int]] = []
 # Enemy mobster
 enemy_list = []
 
-def gen_all_sprites():
+def gen_soldier_sprites():
     return {
         "Pistol" : Sprites.Sprite(
             (
@@ -104,6 +104,79 @@ def gen_all_sprites():
         )
     }
 
+
+def gen_mobster_sprites():
+    return {
+        "Pistol" : Sprites.Sprite(
+            (
+                "MOBSTER_TORSO_0PISTOL",
+                "MOBSTER_TORSO_45PISTOL",
+                "MOBSTER_TORSO_90PISTOL",
+                "MOBSTER_TORSO_135PISTOL",
+                "MOBSTER_TORSO_180PISTOL",
+                "MOBSTER_TORSO_225PISTOL",
+                "MOBSTER_TORSO_270PISTOL",
+                "MOBSTER_TORSO_315PISTOL",
+            )
+        ),
+
+        "Revolver" : Sprites.Sprite(
+            (
+                "MOBSTER_TORSO_0PISTOL",
+                "MOBSTER_TORSO_45PISTOL",
+                "MOBSTER_TORSO_90PISTOL",
+                "MOBSTER_TORSO_135PISTOL",
+                "MOBSTER_TORSO_180PISTOL",
+                "MOBSTER_TORSO_225PISTOL",
+                "MOBSTER_TORSO_270PISTOL",
+                "MOBSTER_TORSO_315PISTOL",
+            )
+        ),
+        "Shotgun" : Sprites.Sprite(
+            (
+                "MOBSTER_TORSO_0SHOTGUN",
+                "MOBSTER_TORSO_45SHOTGUN",
+                "MOBSTER_TORSO_90SHOTGUN",
+                "MOBSTER_TORSO_135SHOTGUN",
+                "MOBSTER_TORSO_180SHOTGUN",
+                "MOBSTER_TORSO_225SHOTGUN",
+                "MOBSTER_TORSO_270SHOTGUN",
+                "MOBSTER_TORSO_315SHOTGUN",
+            )
+        ),
+        "Thompson" : Sprites.Sprite(
+            (
+                "MOBSTER_TORSO_0THOMPSON",
+                "MOBSTER_TORSO_45THOMPSON",
+                "MOBSTER_TORSO_90THOMPSON",
+                "MOBSTER_TORSO_135THOMPSON",
+                "MOBSTER_TORSO_180THOMPSON",
+                "MOBSTER_TORSO_225THOMPSON",
+                "MOBSTER_TORSO_270THOMPSON",
+                "MOBSTER_TORSO_315THOMPSON",
+            )
+        ),
+        "Bar" : Sprites.Sprite(
+            (
+                "MOBSTER_TORSO_0BAR",
+                "MOBSTER_TORSO_45BAR",
+                "MOBSTER_TORSO_90BAR",
+                "MOBSTER_TORSO_135BAR",
+                "MOBSTER_TORSO_180BAR",
+                "MOBSTER_TORSO_225BAR",
+                "MOBSTER_TORSO_270BAR",
+                "MOBSTER_TORSO_315BAR",
+            )
+        ),
+        "LEGS" : Sprites.Sprite(
+            (
+                "MOBSTER_LEG_LEFTUP",
+                "MOBSTER_LEG_RIGHTUP",
+                "MOBSTER_LEG_NORMAL"
+            )
+        )
+    }
+
 def fire_gun(obj, direction):
     obj.cooldown += 1
     if obj.cooldown > obj.get_weapon().fire_cooldown:
@@ -176,12 +249,14 @@ class SquadMan:
 
     def __init__(self, loc:tuple[float, float]):
         self.x, self.y = loc
-        self.max_hp = 50
+        self.max_hp = 100
         self.hp = self.max_hp
+        self.pain_amount = 0
+        self.max_pain_amount = 100
         self.dest_x = self.x
         self.dest_y = self.y
 
-        all_sprs = gen_all_sprites()
+        all_sprs = gen_soldier_sprites()
 
         self.references = []
 
@@ -213,7 +288,7 @@ class SquadMan:
         self.knock_back_strength = 0
         self.knock_back_dir = 0
 
-        self.current_weapon_name = random.choice(["Shotgun", "Revolver", "Pistol", "Thompson", "Bar", "GrenadeLauncher"])
+        self.current_weapon_name = "Thompson"#random.choice(["Shotgun", "Revolver", "Pistol", "Thompson", "Bar", "GrenadeLauncher"])
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
@@ -232,7 +307,9 @@ class SquadMan:
         return self.x, self.y
 
     def action(self, m:list[list[int]]):
-        # self.hp = 115
+        self.hp = min(self.hp + 0.3 * (1 - (self.pain_amount / 100)), self.max_hp)
+        self.pain_amount = min(max(self.pain_amount - 0.1, 0), 100)
+
         if self.knock_back_strength >= 0.001:
             self.knock_back_strength *= 0.9
             self.leg_sprite.set_image_speed(4/30)
@@ -295,6 +372,7 @@ class SquadMan:
     def take_damage(self, amount, source=None):
         self.hp -= amount
         camera.Camera.activeCam.screen_shake(((amount / 10) ** 0.5) * 3)
+        self.pain_amount += amount / 2
 
     def check_death(self):
         if self.hp < 0:
@@ -374,14 +452,13 @@ class Enemy:
         self.inaccuracy_multiplier = 1
         self.surprise_factor = 90
 
-        all_sprs = gen_all_sprites()
+        all_sprs = gen_mobster_sprites()
 
         self.pistol_sprite = all_sprs["Pistol"]
         self.revolver_sprite = all_sprs["Revolver"]
         self.shotgun_sprite = all_sprs["Shotgun"]
         self.thompson_sprite = all_sprs["Thompson"]
         self.bar_sprite = all_sprs["Bar"]
-        self.grenade_sprite = all_sprs["GrenadeLauncher"]
         self.sprite = self.thompson_sprite
 
         self.leg_sprite = all_sprs["LEGS"]
@@ -467,7 +544,7 @@ class Enemy:
                         alert_num -= 1
 
     def action(self):
-        self.aim_direction = pygame.math.lerp(self.aim_direction, self.front_direction, 0.1)
+        self.aim_direction = pygame.math.lerp(self.aim_direction, self.front_direction, 0.2)
         self.switch_sprites()
         if self.state == "IDLE":
             if self.sound_heard is not None:
@@ -477,8 +554,7 @@ class Enemy:
             if self.seeing_enemy(SquadMan.squad_list, MAP_GEOMETRY):
                 self.state = "ATTACK"
                 self.move_path.clear()
-                self.cooldown = 0
-                self.inaccuracy_multiplier = self.surprise_factor
+                self.cooldown = -10
                 self.clear_variable_space()
                 self.alerted_saw_player = 5
                 self.alert_others()
@@ -530,7 +606,7 @@ class Enemy:
             if self.seeing_enemy(SquadMan.squad_list, MAP_GEOMETRY):
                 self.state = "ATTACK"
                 self.alerted_saw_player = 5
-                self.inaccuracy_multiplier = self.surprise_factor
+                # self.inaccuracy_multiplier = self.surprise_factor
                 self.move_path.clear()
                 self.cooldown = 0 # Already expected the enemy
                 self.clear_variable_space()
@@ -655,16 +731,13 @@ class Enemy:
             alr_rect = alr_spr.get_rect(center=(x, y-8))
             dest.blit(pygame.transform.scale_by(alr_spr, 0.5), alr_rect)
 
-        # Target line
-        # dx, dy = math.cos(math.radians(self.aim_direction)) * 64, -math.sin(math.radians(self.aim_direction)) * 64
-        # pygame.draw.line(dest, (255, 255, 0), (x, y), (x+dx, y+dy))
 
     def take_damage(self, amount, source):
         source_dir = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
-        damage_multiplier = (abs(self.front_direction - source_dir) / 180) * 1.25 + 1
+        damage_multiplier = (abs(self.front_direction - source_dir) / 180) * 3.25 + 1
         self.hp -= amount * damage_multiplier
         self.front_direction = source_dir
-        self.inaccuracy_multiplier = self.surprise_factor/2
+        self.inaccuracy_multiplier = (self.surprise_factor/3) * damage_multiplier
 
     def knockback(self, strength, knock_dir):
         self.knock_back_dir = knock_dir
