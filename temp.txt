@@ -1,8 +1,6 @@
-sprites/soldier_spr/soldier_0_revolver.png
-sprites/soldier_spr/soldier_45_revolver.png
-sprites/soldier_spr/soldier_90_revolver.png
-sprites/soldier_spr/soldier_135_revolver.png
-sprites/soldier_spr/soldier_180_revolver.png
-sprites/soldier_spr/soldier_225_revolver.png
-sprites/soldier_spr/soldier_270_revolver.png
-sprites/soldier_spr/soldier_315_revolver.png
+sprites/weapons_spr/bar.png
+sprites/weapons_spr/colt.png
+sprites/weapons_spr/glauncher.png
+sprites/weapons_spr/revolver.png
+sprites/weapons_spr/shotgun.png
+sprites/weapons_spr/thompson.png

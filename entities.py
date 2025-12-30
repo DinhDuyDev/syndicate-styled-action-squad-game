@@ -102,6 +102,14 @@ class Explosion:
         all_entities.append(self)
         camera.Camera.activeCam.screen_shake(3)
 
+        # Effects
+        for i in range(8):
+            x_rand = self.x+random.randint(-16, 16)
+            y_rand = self.y+random.randint(-16, 16)
+            Smoke(x_rand, y_rand, initial_scale=4)
+
+        # Rays
+
     def action(self):
         self.destroy()
     def render(self, dest:pygame.Surface, x, y):
@@ -109,8 +117,35 @@ class Explosion:
     def destroy(self):
         deletor.Deleter.request_delete(self, all_entities)
 
+class DustParticles:
+    def __init__(self, x, y, direction=0):
+        self.x = x
+        self.y = y
+        all_entities.append(self)
+        self.color = (255, 0, 255)
+        self.references = []
+        self.cooldown = random.randrange(0, 7)
+        self.speed = random.random() * 2
+        self.direction = direction#random.random() * 360
+
+    def action(self):
+        self.x += math.cos(math.radians(self.direction)) * self.speed
+        self.y -= math.sin(math.radians(self.direction)) * self.speed
+        if self.cooldown < 0:
+            self.destroy()
+        else:
+            self.cooldown -= 0.5
+
+    def render(self, dest: pygame.Surface, x, y):
+        pygame.draw.rect(dest, self.color, (x-1, y-1, 2, 2))
+
+    def destroy(self):
+        deletor.Deleter.request_delete(self, all_entities)
+        for l in self.references:
+            deletor.Deleter.request_delete(self, l)
+
 class Smoke:
-    def __init__(self, x, y, decrease_multiplier=0.97):
+    def __init__(self, x, y, decrease_multiplier=0.97, initial_scale=1):
         self.x = x
         self.y = y
         self.sprite = Sprites.Sprite(
@@ -125,7 +160,7 @@ class Smoke:
         self.direction = random.randint(0, 360)
         self.speed = random.randint(3, 5) * 0.01
         self.sprite.set_image_speed(1/30)
-        self.scale = 1
+        self.scale = initial_scale
         self.decrease_multiplier = decrease_multiplier
         all_entities.append(self)
 
@@ -161,5 +196,5 @@ class SoundSource:
         for l in self.references:
             deletor.Deleter.request_delete(self, l)
 
-all_entities_type = Grenade|Explosion|Smoke
+all_entities_type = Grenade|Explosion|Smoke|DustParticles
 all_entities:list[all_entities_type] = []

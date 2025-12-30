@@ -15,7 +15,7 @@ class PlayerBullet:
         self.deviation = deviation
         self.spawner = spawner
         self.damage = damage
-        self.range = r
+        self._range = r
         self.lives = lives
         self.hit_targets = []
         self.create_ray = create_ray
@@ -29,25 +29,26 @@ class PlayerBullet:
         dev = random.randrange(-self.deviation, self.deviation)
         vec_x = math.cos(math.radians(self.direction+dev))
         vec_y = math.sin(math.radians(self.direction+dev))
-        while self.range > 0:
+        while self._range > 0:
             self.x += vec_x * 4
             self.y -= vec_y * 4
             __x, __y = int(self.x/settings.cell_dimension), int(self.y/settings.cell_dimension)
-            if map_matrix[__y][__x] != 0:
-                effects.MuzzleFlash(self.x, self.y)
-                self.range = -1000 # end the movement
-                # Create bullet holes
-                # obstructed = False
-                # for hole in effects.BulletHole.all_bullet_holes:
-                #     if hole.get_hitbox().collidepoint(self.x, self.y):
-                #         obstructed = True
-                # if not obstructed:
-                #     effects.BulletHole(self.x+vec_x*1.5, self.y-vec_y*1.5)
+            __fx, __fy = int((self.x+vec_x*4)/settings.cell_dimension), int((self.y-vec_y*4)/settings.cell_dimension)
+            hit_wall = map_matrix[__fy][__x] != 0 or map_matrix[__y][__fx] != 0
+            rebound_direction = 0
+            if map_matrix[__fy][__x] != 0: # x-plane:
+                rebound_direction = utilityfuncs.point_direction(0, 0, 0, -vec_y)
+            elif map_matrix[__y][__fx] != 0: # y-plane:
+                rebound_direction = utilityfuncs.point_direction(0, 0, vec_x, 0)
 
+            if hit_wall:
+                effects.MuzzleFlash(self.x, self.y)
+                self._range = -1000 # end the movement
                 v = entities.Smoke(self.x, self.y)
-                v.direction = 0
-                v.speed = 0
-                PlayerBullet.all_bullets.append(self)
+                v.direction = rebound_direction
+                v.speed = -random.random() * 0.4
+                for i in range(4):
+                    entities.DustParticles(self.x, self.y, direction=rebound_direction+180 + random.randrange(-17, 17))
 
             else:
                 for e in enemy_instances:
@@ -59,8 +60,8 @@ class PlayerBullet:
                         __d = utilityfuncs.point_direction(self.x, self.y, e.x, e.y)
                         break
                 if self.lives <= 0:
-                    self.range = -1000
-            self.range -= 1
+                    self._range = -1000
+            self._range -= 1
         for hit in self.hit_targets:
             hit.take_damage(self.damage, self.spawner)
 

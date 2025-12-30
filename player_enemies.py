@@ -203,7 +203,7 @@ def fire_gun(obj, direction):
                                     deviation=_inaccuracies, lives=_lives, create_ray=_create_ray)
                 effects.MuzzleFlash(obj.xy()[0] + vec_x, obj.xy()[1] - vec_y)
 
-        entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / (base_ref+1)) * 30)
+        # entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / (base_ref+1)) * 30)
         obj.sprite.set_image_index(d)
         # shake_factor = total_damage / 20
         # camera.Camera.activeCam.screen_shake(shake_factor * 3)
@@ -288,11 +288,12 @@ class SquadMan:
         self.knock_back_strength = 0
         self.knock_back_dir = 0
 
-        self.current_weapon_name = "Thompson"#random.choice(["Shotgun", "Revolver", "Pistol", "Thompson", "Bar", "GrenadeLauncher"])
+        self.current_weapon_name = "Pistol"#random.choice(["Shotgun", "Revolver", "Pistol", "Thompson", "Bar", "GrenadeLauncher"])
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
         self.cooldown_steps = 0
+        self.speed = 0.5
 
         SquadMan.squad_list.append(self)
 
@@ -307,8 +308,8 @@ class SquadMan:
         return self.x, self.y
 
     def action(self, m:list[list[int]]):
-        self.hp = min(self.hp + 0.3 * (1 - (self.pain_amount / 100)), self.max_hp)
-        self.pain_amount = min(max(self.pain_amount - 0.1, 0), 100)
+        self.hp = min(self.hp + 0.2 * (1 - (self.pain_amount / 200)), self.max_hp)
+        self.pain_amount = min(max(self.pain_amount - 0.1, 0), 200)
 
         if self.knock_back_strength >= 0.001:
             self.knock_back_strength *= 0.9
@@ -320,8 +321,8 @@ class SquadMan:
         if len(self.move_path) == 0:
             if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 2:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, self.dest_x, self.dest_y)
-                self.x += math.cos(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * spd_modifier
-                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * spd_modifier
+                self.x += math.cos(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier
+                self.y -= math.sin(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier
             else:
                 self.dest_x, self.dest_y = self.x, self.y
                 self.leg_sprite.set_image_index(2)
@@ -334,8 +335,8 @@ class SquadMan:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, x, y)
                 if self.focused:
                     self.sprite.set_image_index(int(dir_/45))
-                self.x += math.cos(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * spd_modifier
-                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * spd_modifier
+                self.x += math.cos(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier
+                self.y -= math.sin(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier
             else:
                 m[self.move_path[0][1]][self.move_path[0][0]] = 0
                 self.move_path.pop(0)
@@ -346,7 +347,7 @@ class SquadMan:
                 self.leg_sprite.image_index = 0
 
         # self.hp = 10000
-    def render(self, dest:pygame.Surface, x, y):
+    def render(self, dest:pygame.Surface, x, y, show_stats=False):
         # Being used
         vec_x = math.cos(math.radians(self.knock_back_dir)) * self.knock_back_strength
         vec_y = math.sin(math.radians(self.knock_back_dir)) * self.knock_back_strength
@@ -362,17 +363,28 @@ class SquadMan:
         #     pygame.draw.rect(dest, (255, 0, 255), (x-1, y-7, 2, 2))
 
         # Health
-        pygame.draw.rect(dest, (255, 0, 0), (x - 5, y - 9, 10, 2))
-        pygame.draw.rect(dest, (0, 255, 0), (x - 5, y - 9, 10 * self.hp / self.max_hp, 2))
+        if show_stats:
+            pygame.draw.rect(dest, (255, 0, 0), (x - 5, y - 9, 10, 2))
+            pygame.draw.rect(dest, (0, 255, 0), (x - 5, y - 9, 10 * self.hp / self.max_hp, 2))
 
-        pygame.draw.rect(dest, (0, 0, 0), (x - 10, y-3, 2, 13))
-        r = self.cooldown / self.get_weapon().fire_cooldown
-        pygame.draw.rect(dest, (255, 255, 255), (x - 10, y+10 - 13 * r, 2, 13 * r))
+            pygame.draw.rect(dest, (0, 0, 0), (x - 10, y-3, 2, 13))
+            r = self.cooldown / self.get_weapon().fire_cooldown
+            pygame.draw.rect(dest, (255, 255, 255), (x - 10, y+10 - 13 * r, 2, 13 * r))
 
     def take_damage(self, amount, source=None):
         self.hp -= amount
         camera.Camera.activeCam.screen_shake(((amount / 10) ** 0.5) * 3)
         self.pain_amount += amount / 2
+
+        source_dir = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)+180
+
+        num_splots = int(1 + amount / 20)
+        for i in range(num_splots):
+            r = random.randrange(6, 23) + 2 * (amount / 32)
+            _rd = random.randrange(-11, 11)
+            vec_x = math.cos(math.radians(source_dir+_rd)) * r
+            vec_y = math.sin(math.radians(source_dir+_rd)) * r
+            effects.BloodSplot(self.x + vec_x, self.y - vec_y)
 
     def check_death(self):
         if self.hp < 0:
@@ -429,7 +441,7 @@ def move_squad(x, y, m):
                     sq_m.focused = True
         d +=  360 / num_active
 
-
+# Default enemies are mobsters, so health will be a little lower
 class Enemy:
     def __init__(self, loc:tuple[float, float], exclude=False, weapon_type="Pistol"):
         self.x, self.y = loc
@@ -734,10 +746,18 @@ class Enemy:
 
     def take_damage(self, amount, source):
         source_dir = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
-        damage_multiplier = (abs(self.front_direction - source_dir) / 180) * 3.25 + 1
+        damage_multiplier = (abs(self.front_direction - source_dir) / 180) * 1.25 + 1
         self.hp -= amount * damage_multiplier
         self.front_direction = source_dir
-        self.inaccuracy_multiplier = (self.surprise_factor/3) * damage_multiplier
+        # self.inaccuracy_multiplier = (self.surprise_factor/3) * damage_multiplier
+
+        num_splots = int(1 + amount / 20)
+        for i in range(num_splots):
+            r = random.randrange(6, 23) + 2 * (amount / 32)
+            _rd = random.randrange(-11, 11)
+            vec_x = math.cos(math.radians(source_dir+_rd+180)) * r
+            vec_y = math.sin(math.radians(source_dir+_rd+180)) * r
+            effects.BloodSplot(self.x + vec_x, self.y - vec_y)
 
     def knockback(self, strength, knock_dir):
         self.knock_back_dir = knock_dir

@@ -150,6 +150,11 @@ ASP:dict[str, pygame.Surface] = {
     "SMOKE2": pygame.image.load("sprites/smoke_spr/smoke2.png").convert_alpha(),
     "SMOKE3": pygame.image.load("sprites/smoke_spr/smoke3.png").convert_alpha(),
 
+    # blood_spr
+    "BLOOD_SPLOT1": pygame.image.load("sprites/blood_spr/blood_splot1.png").convert_alpha(),
+    "BLOOD_SPLOT2": pygame.image.load("sprites/blood_spr/blood_splot2.png").convert_alpha(),
+    "BLOOD_SPLOT3": pygame.image.load("sprites/blood_spr/blood_splot3.png").convert_alpha(),
+
     # skull_spr
     "SKULL": pygame.image.load("sprites/skull_spr/skull.png").convert_alpha(),
 
@@ -161,9 +166,12 @@ ASP:dict[str, pygame.Surface] = {
     "TABLE_TOPPLED_LEG": pygame.image.load("sprites/table_spr/table_toppled_leg.png").convert_alpha(),
 
     # weapons_spr
-    "COLT": pygame.image.load("sprites/weapons_spr/colt.png").convert_alpha(),
-    "COLT1": pygame.image.load("sprites/weapons_spr/colt1.png").convert_alpha(),
-    "COLT2": pygame.image.load("sprites/weapons_spr/colt2.png").convert_alpha(),
+    "Pistol": pygame.image.load("sprites/weapons_spr/colt.png").convert_alpha(),
+    "Bar": pygame.image.load("sprites/weapons_spr/bar.png").convert_alpha(),
+    "GrenadeLauncher": pygame.image.load("sprites/weapons_spr/glauncher.png").convert_alpha(),
+    "Revolver": pygame.image.load("sprites/weapons_spr/revolver.png").convert_alpha(),
+    "Shotgun": pygame.image.load("sprites/weapons_spr/shotgun.png").convert_alpha(),
+    "Thompson": pygame.image.load("sprites/weapons_spr/thompson.png").convert_alpha(),
 
     # Sprite_Editor
     "ERASER": pygame.image.load("sprites/Sprite_Editor/Tools/eraser.png").convert_alpha(),

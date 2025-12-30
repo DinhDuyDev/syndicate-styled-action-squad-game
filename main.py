@@ -23,6 +23,9 @@ import entities
 pygame.init()
 pygame.font.init()
 
+for fnt in pygame.font.get_fonts():
+    print(fnt)
+
 #####################
 # UI / Screen setup #
 #####################
@@ -31,15 +34,21 @@ game_screen = screen.Screen(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
 draw_dest = game_screen.screen.copy()
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("Arial", 10)
+big_font = pygame.font.SysFont("Courier New", 50)
 ingame_font = pygame.font.SysFont("Arial", 7)
 
 class GameVariables:
     running = True
+    debug_mode = False
     GAME_FPS = 60
+
 class Performance:
     MAX_FPS = -100000
     MIN_FPS = 999999
 
+class UserInterface:
+    ui_offset = 0
+    squad_ui_used = False
 ##########
 # Player #
 ##########
@@ -136,39 +145,75 @@ class user_input:
     mouse_pressed = False
     key_pressed = False
 
+def debug_information():
+    if pygame.key.get_pressed()[pygame.K_TAB]:
+        curr_fps = clock.get_fps()
+        pygame.draw.rect(draw_dest, (255, 0, 0), (0, 0, 32, 4))
+        pygame.draw.rect(draw_dest, (0, 255, 0), (0, 0, 32 * (clock.get_fps() / 60), 4))
+
+        # Max FPS
+        if curr_fps > Performance.MAX_FPS:
+            Performance.MAX_FPS = curr_fps
+        if curr_fps < Performance.MIN_FPS:
+            Performance.MIN_FPS = curr_fps
+
+        max_fps = font.render(f"max fps: {Performance.MAX_FPS}", False, (255, 255, 255))
+        min_fps = font.render(f"min fps: {Performance.MIN_FPS}", False, (255, 255, 255))
+        max_rect = max_fps.get_rect(topleft=(0, 8))
+        min_rect = min_fps.get_rect(topleft=(0, 16))
+        draw_dest.blit(max_fps, max_rect)
+        draw_dest.blit(min_fps, min_rect)
+        # load_level(not map.GameMap.level)
+    else:
+        # MEMORY:
+        memory_amount = font.render(f"{psutil.Process().memory_info().rss / 1024 ** 2}", False, (255, 255, 255))
+        memory_rect = memory_amount.get_rect(topleft=(0, 0))
+        draw_dest.blit(memory_amount, memory_rect)
+
+def squad_information_ui():
+    ww, wh = settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT
+    pygame.draw.rect(draw_dest, (128, 128, 128), (0, 0, ww/8, wh/2))
+    ind = 0
+    for i in range(2):
+        for j in range(2):
+            ind += 1
+            pygame.draw.rect(draw_dest, (50, 50, 50), (j * ww/16, i * wh/4, ww/16, wh/4), width=2)
+            pygame.draw.rect(draw_dest, (0, 0, 0), (j * ww / 16-2, i * wh / 4-2, ww / 16, wh / 4), width=1)
+            center = (j * ww/16+ww/32, i * wh/4+wh/8)
+            number = big_font.render(str(ind), False, (170, 170, 170))
+            number_rect = number.get_rect(center=center)
+            draw_dest.blit(number, number_rect)
+            if ind-1 < len(player_enemies.SquadMan.squad_list):
+                sq_member = player_enemies.SquadMan.squad_list[ind-1]
+                sq_member.render(draw_dest, center[0], center[1], show_stats=True)
 # All Screens:
 # - Title Screen
 # - Menu / Selection Screen
 # - Options Screen
 # - Audio / Selections Screen
+# - Level
 def game():
     while GameVariables.running:
+        # Title Screen
+        # Menu / Selection Screen
+        # Option Screen
+        # Audio / Selections Screen
+        # Level
         in_level()
 
         # Performance
-        if pygame.key.get_pressed()[pygame.K_TAB]:
-            CURR_FPS = clock.get_fps()
-            pygame.draw.rect(draw_dest, (255, 0, 0), (0, 0, 32, 4))
-            pygame.draw.rect(draw_dest, (0, 255, 0), (0, 0, 32 * (clock.get_fps() / 60), 4))
-
-            # Max FPS
-            if CURR_FPS > Performance.MAX_FPS:
-                Performance.MAX_FPS = CURR_FPS
-            if CURR_FPS < Performance.MIN_FPS:
-                Performance.MIN_FPS = CURR_FPS
-
-            max_fps = font.render(f"max fps: {Performance.MAX_FPS}", False, (255, 255, 255))
-            min_fps = font.render(f"min fps: {Performance.MIN_FPS}", False, (255, 255, 255))
-            max_rect = max_fps.get_rect(topleft=(0, 8))
-            min_rect = min_fps.get_rect(topleft=(0, 16))
-            draw_dest.blit(max_fps, max_rect)
-            draw_dest.blit(min_fps, min_rect)
-            # load_level(not map.GameMap.level)
+        if GameVariables.debug_mode:
+            debug_information()
         else:
-            # MEMORY:
-            memory_amount = font.render(f"{psutil.Process().memory_info().rss / 1024 ** 2}", False, (255, 255, 255))
-            memory_rect = memory_amount.get_rect(topleft=(0, 0))
-            draw_dest.blit(memory_amount, memory_rect)
+            # 640x360 screen
+            # 1/4 of the screen
+            # if pygame.key.get_pressed()[pygame.K_TAB]:
+            #     UserInterface.squad_ui_used = True
+            # else:
+            #     UserInterface.squad_ui_used = False
+            UserInterface.squad_ui_used = True
+            if UserInterface.squad_ui_used:
+                squad_information_ui()
 
         # Resizing Screen
         game_screen.screen.blit(pygame.transform.scale_by(pygame.transform.scale(draw_dest, game_screen.get_dimensions()), settings.zoom), (gameCamera.camera_shake_vector(), gameCamera.camera_shake_vector()))
@@ -187,10 +232,16 @@ def in_level():
     c_x = int(c_x)
     c_y = int(c_y)
     mx, my = utilityfuncs.mouse_xy_transformation(draw_dest, game_screen.screen)
+
+    # UI Interaction
+    can_click = True
+    if UserInterface.squad_ui_used:
+        if mx < settings.WINDOW_WIDTH/8:
+            can_click = False
     for event in pygame.event.get():
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             GameVariables.running = False
-        elif event.type == pygame.KEYDOWN:
+        elif event.type == pygame.KEYDOWN and can_click:
             if event.key == pygame.K_SPACE:
                 squad_man = player_enemies.SquadMan.squad_list
                 if player_enemies.SquadMan.nums_active() != 4:
@@ -203,44 +254,45 @@ def in_level():
     ####################################
     # EVERYTHING INTERACTING WITH GAME #
     ####################################
-    if not pygame.mouse.get_pressed()[0]:
-        user_input.mouse_pressed = False
+    if can_click:
+        if not pygame.mouse.get_pressed()[0]:
+            user_input.mouse_pressed = False
 
-    if pygame.mouse.get_pressed()[0] and not user_input.mouse_pressed:
-        clicking_on_player = False
-        _x = c_x * settings.cell_dimension
-        _y = c_y * settings.cell_dimension
-        # Interacting with the player squad
-        for sq in player_enemies.SquadMan.squad_list:
-            sq_rect = pygame.Rect(sq.x-4-_x, sq.y-9-_y, 8, 16)#sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
-            if sq_rect.collidepoint(mx, my):
-                clicking_on_player = True
-                sq.being_used = not sq.being_used
+        if pygame.mouse.get_pressed()[0] and not user_input.mouse_pressed:
+            clicking_on_player = False
+            _x = c_x * settings.cell_dimension
+            _y = c_y * settings.cell_dimension
+            # Interacting with the player squad
+            for sq in player_enemies.SquadMan.squad_list:
+                sq_rect = pygame.Rect(sq.x-4-_x, sq.y-9-_y, 8, 16)#sq.sprite.get_current_image().get_rect(center=(sq.xy()[0] - _x, sq.xy()[1] - _y))
+                if sq_rect.collidepoint(mx, my):
+                    clicking_on_player = True
+                    sq.being_used = not sq.being_used
 
-        user_input.mouse_pressed = True
-        if not clicking_on_player:
-            if LoadedScene.loaded_map[int(my/settings.cell_dimension)+c_y][int(mx/settings.cell_dimension)+c_x] == 0:
-                p.move_squad(mx+_x, my+_y, LoadedScene.loaded_map)
+            user_input.mouse_pressed = True
+            if not clicking_on_player:
+                if LoadedScene.loaded_map[int(my/settings.cell_dimension)+c_y][int(mx/settings.cell_dimension)+c_x] == 0:
+                    p.move_squad(mx+_x, my+_y, LoadedScene.loaded_map)
 
-    # Selecting soldiers individually
-    all_soldiers_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
-    squad_list = player_enemies.SquadMan.squad_list
-    any_keys_being_pressed = False
-    for i in range(len(all_soldiers_keys)):
-        if pygame.key.get_pressed()[i]:
-            any_keys_being_pressed = True
+        # Selecting soldiers individually
+        all_soldiers_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
+        squad_list = player_enemies.SquadMan.squad_list
+        any_keys_being_pressed = False
+        for i in range(len(all_soldiers_keys)):
+            if pygame.key.get_pressed()[i]:
+                any_keys_being_pressed = True
 
-    if not any_keys_being_pressed:
-        user_input.key_pressed = False
-    for i in range(len(squad_list)):
-        squad_man = player_enemies.SquadMan.squad_list
-        if not user_input.key_pressed:
-            if pygame.key.get_pressed()[all_soldiers_keys[i]]:
-                user_input.key_pressed = True
-                squad_man[i].being_used = True
-                for j in range(len(squad_list)):
-                    if j != i:
-                        squad_man[j].being_used = False
+        if not any_keys_being_pressed:
+            user_input.key_pressed = False
+        for i in range(len(squad_list)):
+            squad_man = player_enemies.SquadMan.squad_list
+            if not user_input.key_pressed:
+                if pygame.key.get_pressed()[all_soldiers_keys[i]]:
+                    user_input.key_pressed = True
+                    squad_man[i].being_used = True
+                    for j in range(len(squad_list)):
+                        if j != i:
+                            squad_man[j].being_used = False
 
     ###############
     # ALL CAMERAS #
@@ -270,6 +322,12 @@ def in_level():
                 tile_rect = tile_spr.get_rect(topleft=(_x, _y))
                 draw_dest.blit(shadow_surf, shadow_rect)
                 draw_dest.blit(tile_spr, tile_rect)
+
+    # Drawing blood splatters
+    for blood_splots in effects.BloodSplot.all_blood_splots:
+        _x = c_x * settings.cell_dimension
+        _y = c_y * settings.cell_dimension
+        blood_splots.render(draw_dest, blood_splots.x-_x, blood_splots.y-_y)
 
     # Drawing everything else
     for scene_points in LoadedScene.draw_stack:
