@@ -386,6 +386,9 @@ class SquadMan:
             vec_y = math.sin(math.radians(source_dir+_rd)) * r
             effects.BloodSplot(self.x + vec_x, self.y - vec_y)
 
+    def cooldown_ratio(self):
+        r = self.cooldown / self.get_weapon().fire_cooldown
+        return r
     def check_death(self):
         if self.hp < 0:
             self.destroy()

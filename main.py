@@ -15,6 +15,7 @@ import Bullet
 import effects
 import deletor
 import entities
+import ALL_SPRITES
 
 ###########################
 # Initializing everything #
@@ -34,7 +35,7 @@ game_screen = screen.Screen(settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT)
 draw_dest = game_screen.screen.copy()
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("Arial", 10)
-big_font = pygame.font.SysFont("Courier New", 50)
+big_font = pygame.font.SysFont("Courier New", 50, bold=True)
 ingame_font = pygame.font.SysFont("Arial", 7)
 
 class GameVariables:
@@ -171,21 +172,42 @@ def debug_information():
         draw_dest.blit(memory_amount, memory_rect)
 
 def squad_information_ui():
-    ww, wh = settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT
+    ww, wh = settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT/1.25
     pygame.draw.rect(draw_dest, (128, 128, 128), (0, 0, ww/8, wh/2))
     ind = 0
     for i in range(2):
         for j in range(2):
             ind += 1
-            pygame.draw.rect(draw_dest, (50, 50, 50), (j * ww/16, i * wh/4, ww/16, wh/4), width=2)
-            pygame.draw.rect(draw_dest, (0, 0, 0), (j * ww / 16-2, i * wh / 4-2, ww / 16, wh / 4), width=1)
+            top_left = (j * ww/16, i*wh/4)
             center = (j * ww/16+ww/32, i * wh/4+wh/8)
+            pygame.draw.rect(draw_dest, (50, 50, 50), (j * ww/16, i * wh/4, ww/16, wh/4), width=2)
+            pygame.draw.rect(draw_dest, (0, 0, 0), (j * ww / 16+1, i * wh / 4+1, ww / 16, wh / 4), width=1)
             number = big_font.render(str(ind), False, (170, 170, 170))
             number_rect = number.get_rect(center=center)
             draw_dest.blit(number, number_rect)
             if ind-1 < len(player_enemies.SquadMan.squad_list):
                 sq_member = player_enemies.SquadMan.squad_list[ind-1]
-                sq_member.render(draw_dest, center[0], center[1], show_stats=True)
+                health = ingame_font.render(f"HP: {int(sq_member.hp)}", False, (255, 255, 255))
+                health_rect = health.get_rect(topleft=(top_left[0]+4, top_left[1]+2))
+                sq_member.render(draw_dest, center[0], top_left[1]+24, show_stats=False)
+                draw_dest.blit(health, health_rect)
+
+                # Outline
+                wep_spr = ALL_SPRITES.ASP[sq_member.current_weapon_name]
+                sub_width = int((sq_member.cooldown_ratio() * wep_spr.get_width()))
+                w = wep_spr.get_width()
+                h = wep_spr.get_height()
+                selected_weapon_sprite = pygame.transform.rotate(wep_spr, 90)
+                selected_weapon_sprite_rect = selected_weapon_sprite.get_rect(topleft=(top_left[0]+2, top_left[1]+12))
+                draw_dest.blit(selected_weapon_sprite, selected_weapon_sprite_rect)
+
+                # Fill
+                cooldown_fill = pygame.transform.rotate(wep_spr.subsurface((0, 0, sub_width, h)), 90)
+                px_arr = pygame.PixelArray(cooldown_fill)
+                px_arr.replace((255, 255, 255), (255, 0, 0))
+                px_arr.close()
+                cooldown_fill_rect = cooldown_fill.get_rect(topleft=(top_left[0]+2, top_left[1]+12+w-sub_width))
+                draw_dest.blit(cooldown_fill, cooldown_fill_rect)
 # All Screens:
 # - Title Screen
 # - Menu / Selection Screen
