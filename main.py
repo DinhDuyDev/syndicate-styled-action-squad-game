@@ -172,33 +172,68 @@ def debug_information():
         draw_dest.blit(memory_amount, memory_rect)
 
 def squad_information_ui():
-    ww, wh = settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT/1.25
-    pygame.draw.rect(draw_dest, (128, 128, 128), (0, 0, ww/8, wh/2))
+    ww, wh = settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT
+    cell_w, cell_h = ww/16, wh/4
+    pygame.draw.rect(draw_dest, (100, 100, 100), (0, 0, ww/8, wh/2))
     ind = 0
     for i in range(2):
         for j in range(2):
             ind += 1
-            top_left = (j * ww/16, i*wh/4)
-            center = (j * ww/16+ww/32, i * wh/4+wh/8)
-            pygame.draw.rect(draw_dest, (50, 50, 50), (j * ww/16, i * wh/4, ww/16, wh/4), width=2)
-            pygame.draw.rect(draw_dest, (0, 0, 0), (j * ww / 16+1, i * wh / 4+1, ww / 16, wh / 4), width=1)
-            number = big_font.render(str(ind), False, (170, 170, 170))
-            number_rect = number.get_rect(center=center)
-            draw_dest.blit(number, number_rect)
+            top_left = (j * cell_w, i * cell_h)
+            center = (j * cell_w+cell_w/2, i * cell_h + cell_h/2)
+            pygame.draw.rect(draw_dest, (0, 0, 0), (j * cell_w, i * cell_h, cell_w, cell_h), width=2)
+            # pygame.draw.rect(draw_dest, (0, 0, 0), (j * ww / 16+1, i * wh / 4+1, ww / 16, wh / 4), width=1)
+            number_background = big_font.render(str(ind), False, (90, 90, 90))
+            numb_background_rect = number_background.get_rect(center=center)
+            foreground = big_font.render(str(ind), False, (170, 170, 170))
+            foreground_rect = foreground.get_rect(center=center)
+            draw_dest.blit(number_background, numb_background_rect)
+            draw_dest.blit(foreground, foreground_rect)
+
             if ind-1 < len(player_enemies.SquadMan.squad_list):
                 sq_member = player_enemies.SquadMan.squad_list[ind-1]
-                health = ingame_font.render(f"HP: {int(sq_member.hp)}", False, (255, 255, 255))
-                health_rect = health.get_rect(topleft=(top_left[0]+4, top_left[1]+2))
-                sq_member.render(draw_dest, center[0], top_left[1]+24, show_stats=False)
-                draw_dest.blit(health, health_rect)
+                # Health
+                # sub_height = (1-sq_member.health_ratio())*(wh/4)
+                # health_bar = pygame.Surface((ww/16, sub_height), 0)
+                # health_bar.fill((255, 0, 0))
+                # health_bar.set_alpha(100)
+                # health_bar_rect = health_bar.get_rect(topleft=(j*ww/16, i* wh/4 + wh/4-sub_height))
+                # draw_dest.blit(health_bar, health_bar_rect)
+                # pygame.draw.rect(draw_dest, (0, 0, 0), (j * ww / 16, i * wh / 4, ww / 16, wh / 4), width=2)
 
+                # # Outline
+                health_bar = ALL_SPRITES.ASP["SOLDIER_SILHOUETTE"].copy()
+                w = health_bar.get_width()
+                h = health_bar.get_height()
+                sub_height = min(int(((1-sq_member.health_ratio()) * h)), h)
+                health_bar_rect = health_bar.get_rect(
+                    topright=(top_left[0]+cell_w - 4, top_left[1]+2))
+                draw_dest.blit(health_bar, health_bar_rect)
+
+                # Fill
+                health_fill = health_bar.subsurface((0, h-sub_height, w, sub_height))
+                health_arr = pygame.PixelArray(health_fill)
+                health_arr.replace((255, 255, 255), (255, 0, 0))
+                health_arr.replace((175, 175, 175), (255, 0, 0))
+                health_arr.replace((128, 128, 128), (255, 0, 0))
+                health_arr.replace((100, 100, 100), (255, 0, 0))
+                health_arr.close()
+                health_fill_rect = health_fill.get_rect(topright=(top_left[0] + cell_w - 4, top_left[1] + 2 + h - sub_height))
+                draw_dest.blit(health_fill, health_fill_rect)
+
+                # health = ingame_font.render(f"DMG: {int(sub_height/h * 100)} %", False, (255, 255, 255))
+                # health_rect = health.get_rect(topleft=(top_left[0]+4, top_left[1]+2))
+                # sq_member.render(draw_dest, center[0], top_left[1]+24, show_stats=False)
+                # draw_dest.blit(health, health_rect)
+
+                # # WEAPON
                 # Outline
                 wep_spr = ALL_SPRITES.ASP[sq_member.current_weapon_name]
                 sub_width = int((sq_member.cooldown_ratio() * wep_spr.get_width()))
                 w = wep_spr.get_width()
                 h = wep_spr.get_height()
                 selected_weapon_sprite = pygame.transform.rotate(wep_spr, 90)
-                selected_weapon_sprite_rect = selected_weapon_sprite.get_rect(topleft=(top_left[0]+2, top_left[1]+12))
+                selected_weapon_sprite_rect = selected_weapon_sprite.get_rect(topleft=(top_left[0]+2, top_left[1]+3- w/2 * (w <= 16)))
                 draw_dest.blit(selected_weapon_sprite, selected_weapon_sprite_rect)
 
                 # Fill
@@ -206,7 +241,7 @@ def squad_information_ui():
                 px_arr = pygame.PixelArray(cooldown_fill)
                 px_arr.replace((255, 255, 255), (255, 0, 0))
                 px_arr.close()
-                cooldown_fill_rect = cooldown_fill.get_rect(topleft=(top_left[0]+2, top_left[1]+12+w-sub_width))
+                cooldown_fill_rect = cooldown_fill.get_rect(topleft=(top_left[0]+2, top_left[1]+3-w/2 * (w <= 16) +w-sub_width))
                 draw_dest.blit(cooldown_fill, cooldown_fill_rect)
 # All Screens:
 # - Title Screen

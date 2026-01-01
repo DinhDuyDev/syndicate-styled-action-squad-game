@@ -173,6 +173,9 @@ ASP:dict[str, pygame.Surface] = {
     "Shotgun": pygame.image.load("sprites/weapons_spr/shotgun.png").convert_alpha(),
     "Thompson": pygame.image.load("sprites/weapons_spr/thompson.png").convert_alpha(),
 
+    # ui_spr
+    "SOLDIER_SILHOUETTE": pygame.image.load("sprites/ui_spr/soldier_silhouette1.png").convert_alpha(),
+
     # Sprite_Editor
     "ERASER": pygame.image.load("sprites/Sprite_Editor/Tools/eraser.png").convert_alpha(),
     "LINE": pygame.image.load("sprites/Sprite_Editor/Tools/line.png").convert_alpha(),

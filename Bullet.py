@@ -9,7 +9,7 @@ import entities
 class PlayerBullet:
     all_bullets = []
     def __init__(self, x, y, direction, spawner, damage=10, r=64, deviation=7,lives=1,create_ray=False):
-        self.x, self.y = x, y
+        self.x, self.y = spawner.x, spawner.y
         self.x_start, self.y_start = x, y
         self.direction = direction
         self.deviation = deviation
@@ -20,7 +20,7 @@ class PlayerBullet:
         self.hit_targets = []
         self.create_ray = create_ray
 
-        v = entities.Smoke(self.x, self.y)
+        v = entities.Smoke(x, y)
         v.direction = self.direction + random.randrange(-17, 17)
         v.speed = random.randrange(1, 5) * 0.1
         PlayerBullet.all_bullets.append(self)

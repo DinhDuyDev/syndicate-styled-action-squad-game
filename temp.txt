@@ -1,6 +1,1 @@
-sprites/weapons_spr/bar.png
-sprites/weapons_spr/colt.png
-sprites/weapons_spr/glauncher.png
-sprites/weapons_spr/revolver.png
-sprites/weapons_spr/shotgun.png
-sprites/weapons_spr/thompson.png
+sprites/ui_spr/soldier_silhouette.png

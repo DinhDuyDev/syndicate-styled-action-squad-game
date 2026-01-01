@@ -308,6 +308,7 @@ class SquadMan:
         return self.x, self.y
 
     def action(self, m:list[list[int]]):
+        # self.cooldown = max(self.cooldown - 0.01, 0)
         self.hp = min(self.hp + 0.2 * (1 - (self.pain_amount / 200)), self.max_hp)
         self.pain_amount = min(max(self.pain_amount - 0.1, 0), 200)
 
@@ -389,6 +390,10 @@ class SquadMan:
     def cooldown_ratio(self):
         r = self.cooldown / self.get_weapon().fire_cooldown
         return r
+
+    def health_ratio(self):
+        return self.hp / self.max_hp
+
     def check_death(self):
         if self.hp < 0:
             self.destroy()
