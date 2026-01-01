@@ -95,6 +95,18 @@ def gen_soldier_sprites():
                 "SOLDIER_315_GLAUNCHER",
             )
         ),
+        "RocketLauncher" : Sprites.Sprite(
+            (
+                "SOLDIER_0_RLAUNCHER",
+                "SOLDIER_45_RLAUNCHER",
+                "SOLDIER_90_RLAUNCHER",
+                "SOLDIER_135_RLAUNCHER",
+                "SOLDIER_180_RLAUNCHER",
+                "SOLDIER_225_RLAUNCHER",
+                "SOLDIER_270_RLAUNCHER",
+                "SOLDIER_315_RLAUNCHER",
+            )
+        ),
         "LEGS" : Sprites.Sprite(
             (
                 "SOLDIER_LEGS_LEFT",
@@ -191,19 +203,26 @@ def fire_gun(obj, direction):
 
         for i in range(wep.pellets):
             _damage = wep.damage
-            total_damage += _damage
+            # total_damage += _damage
             _inaccuracies = wep.inaccuracy
             _lives = wep.lives
             _projectile_type = wep.projectile_type
             _create_ray = wep.create_ray
             if _projectile_type == "GRENADE":
                 entities.Grenade(obj.x+vec_x, obj.y - vec_y, md_dir, SquadMan.squad_list + enemy_list)
+            elif _projectile_type == "ROCKET":
+                extra_inaccuracy = 0
+                if len(obj.move_path) > 0:
+                    extra_inaccuracy = random.randrange(-32, 32)
+                enemy = SquadMan.squad_list if not isinstance(obj, SquadMan) else enemy_list
+                entities.Rocket(obj.x + vec_x, obj.y - vec_y, md_dir + extra_inaccuracy
+                                , targets=enemy, explosion_affects=SquadMan.squad_list + enemy_list, spawner=obj)
             else:
                 Bullet.PlayerBullet(obj.xy()[0] + vec_x, obj.xy()[1] - vec_y, md_dir, obj, damage=_damage,
                                     deviation=_inaccuracies, lives=_lives, create_ray=_create_ray)
                 effects.MuzzleFlash(obj.xy()[0] + vec_x, obj.xy()[1] - vec_y)
 
-        # entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / (base_ref+1)) * 30)
+        entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / (base_ref+1)) * 30)
         obj.sprite.set_image_index(d)
         # shake_factor = total_damage / 20
         # camera.Camera.activeCam.screen_shake(shake_factor * 3)
@@ -223,6 +242,8 @@ def switch_sprite(obj):
         obj.sprite = obj.bar_sprite
     elif obj.current_weapon_name == "GrenadeLauncher":
         obj.sprite = obj.grenade_sprite
+    elif obj.current_weapon_name == "RocketLauncher":
+        obj.sprite = obj.rocket_sprite
 
 class SquadMan:
     MAX_SQUAD = 4
@@ -266,6 +287,7 @@ class SquadMan:
         self.thompson_sprite = all_sprs["Thompson"]
         self.bar_sprite = all_sprs["Bar"]
         self.grenade_sprite = all_sprs["GrenadeLauncher"]
+        self.rocket_sprite = all_sprs["RocketLauncher"]
 
         self.leg_normal_sprite = all_sprs["LEGS"]
 
@@ -288,7 +310,7 @@ class SquadMan:
         self.knock_back_strength = 0
         self.knock_back_dir = 0
 
-        self.current_weapon_name = "Pistol"#random.choice(["Shotgun", "Revolver", "Pistol", "Thompson", "Bar", "GrenadeLauncher"])
+        self.current_weapon_name = random.choice(["Shotgun", "Revolver", "Pistol", "Thompson", "Bar", "GrenadeLauncher", "RocketLauncher"])
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
@@ -372,12 +394,17 @@ class SquadMan:
             r = self.cooldown / self.get_weapon().fire_cooldown
             pygame.draw.rect(dest, (255, 255, 255), (x - 10, y+10 - 13 * r, 2, 13 * r))
 
+    def get_hitbox(self):
+        return self.sprite.get_current_image().get_rect(center=(self.x, self.y))
+
     def take_damage(self, amount, source=None):
         self.hp -= amount
         camera.Camera.activeCam.screen_shake(((amount / 10) ** 0.5) * 3)
         self.pain_amount += amount / 2
 
-        source_dir = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)+180
+        source_dir = random.random() * 360
+        if source is not None:
+            source_dir = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)+180
 
         num_splots = int(1 + amount / 20)
         for i in range(num_splots):
@@ -751,9 +778,13 @@ class Enemy:
             alr_rect = alr_spr.get_rect(center=(x, y-8))
             dest.blit(pygame.transform.scale_by(alr_spr, 0.5), alr_rect)
 
+    def get_hitbox(self):
+        return self.sprite.get_current_image().get_rect(center=(self.x, self.y))
 
     def take_damage(self, amount, source):
-        source_dir = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
+        source_dir = random.random() * 360
+        if source_dir is not None:
+            source_dir = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
         damage_multiplier = (abs(self.front_direction - source_dir) / 180) * 1.25 + 1
         self.hp -= amount * damage_multiplier
         self.front_direction = source_dir

@@ -52,7 +52,7 @@ class PlayerBullet:
 
             else:
                 for e in enemy_instances:
-                    hitbox = e.sprite.get_current_image().get_rect(center=(e.xy()[0], e.xy()[1]))
+                    hitbox = e.get_hitbox()#e.sprite.get_current_image().get_rect(center=(e.x, e.x))
                     if hitbox.collidepoint(self.x, self.y) and e not in self.hit_targets:
                         self.hit_targets.append(e)
                         effects.MuzzleFlash(self.x, self.y)

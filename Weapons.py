@@ -22,5 +22,6 @@ WEAPONS_REF = {
     "Shotgun": Weapons("RMT 970",  60, 15, 15, 8, 6, speed_modifier=1),
     "Thompson": Weapons("Thompson",  4, 10, 1, 6, 50, speed_modifier=0.8), # damage 8, cooldown 4, pellets 1
     "Bar": Weapons("Bar", 12, 30, 1, 1, 7, lives=2, create_ray=True, speed_modifier=0.6),
-    "GrenadeLauncher": Weapons("GrenadeLauncher", 70, 0, 1, 4, 7, lives=2, create_ray=True, speed_modifier=0.6, projectile_type="GRENADE"),
+    "GrenadeLauncher": Weapons("Grenade Launcher", 70, 0, 1, 4, 7, speed_modifier=0.6, projectile_type="GRENADE"),
+    "RocketLauncher" : Weapons("Rocket Launcher", 60, 0, 1, 4, 1, projectile_type="ROCKET", speed_modifier=0.5)
 }

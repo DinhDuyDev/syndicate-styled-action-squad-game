@@ -138,6 +138,15 @@ ASP:dict[str, pygame.Surface] = {
     "SOLDIER_270_GLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_270_glauncher.png").convert_alpha(),
     "SOLDIER_315_GLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_315_glauncher.png").convert_alpha(),
 
+    "SOLDIER_0_RLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_0_rlauncher.png").convert_alpha(),
+    "SOLDIER_45_RLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_45_rlauncher.png").convert_alpha(),
+    "SOLDIER_90_RLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_90_rlauncher.png").convert_alpha(),
+    "SOLDIER_135_RLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_135_rlauncher.png").convert_alpha(),
+    "SOLDIER_180_RLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_180_rlauncher.png").convert_alpha(),
+    "SOLDIER_225_RLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_225_rlauncher.png").convert_alpha(),
+    "SOLDIER_270_RLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_270_rlauncher.png").convert_alpha(),
+    "SOLDIER_315_RLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_315_rlauncher.png").convert_alpha(),
+
     "SOLDIER_LEGS_LEFT": pygame.image.load("sprites/soldier_spr/soldier_legs_left.png").convert_alpha(),
     "SOLDIER_LEGS_NORMAL": pygame.image.load("sprites/soldier_spr/soldier_legs_normal.png").convert_alpha(),
     "SOLDIER_LEGS_RIGHT": pygame.image.load("sprites/soldier_spr/soldier_legs_right.png").convert_alpha(),
@@ -166,12 +175,13 @@ ASP:dict[str, pygame.Surface] = {
     "TABLE_TOPPLED_LEG": pygame.image.load("sprites/table_spr/table_toppled_leg.png").convert_alpha(),
 
     # weapons_spr
-    "Pistol": pygame.image.load("sprites/weapons_spr/colt.png").convert_alpha(),
     "Bar": pygame.image.load("sprites/weapons_spr/bar.png").convert_alpha(),
-    "GrenadeLauncher": pygame.image.load("sprites/weapons_spr/glauncher.png").convert_alpha(),
+    "Pistol": pygame.image.load("sprites/weapons_spr/colt.png").convert_alpha(),
+    "Thompson": pygame.image.load("sprites/weapons_spr/thompson.png").convert_alpha(),
     "Revolver": pygame.image.load("sprites/weapons_spr/revolver.png").convert_alpha(),
     "Shotgun": pygame.image.load("sprites/weapons_spr/shotgun.png").convert_alpha(),
-    "Thompson": pygame.image.load("sprites/weapons_spr/thompson.png").convert_alpha(),
+    "RocketLauncher": pygame.image.load("sprites/weapons_spr/rlauncher.png").convert_alpha(),
+    "GrenadeLauncher": pygame.image.load("sprites/weapons_spr/glauncher.png").convert_alpha(),
 
     # ui_spr
     "SOLDIER_SILHOUETTE": pygame.image.load("sprites/ui_spr/soldier_silhouette1.png").convert_alpha(),

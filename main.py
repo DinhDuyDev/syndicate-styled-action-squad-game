@@ -174,7 +174,7 @@ def debug_information():
 def squad_information_ui():
     ww, wh = settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT
     cell_w, cell_h = ww/16, wh/4
-    pygame.draw.rect(draw_dest, (100, 100, 100), (0, 0, ww/8, wh/2))
+    pygame.draw.rect(draw_dest, (0, 0, 0), (0, 0, ww/8, wh/2))
     ind = 0
     for i in range(2):
         for j in range(2):

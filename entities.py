@@ -85,6 +85,97 @@ class Grenade:
     def xy(self):
         return self.x, self.y
 
+class Rocket:
+    def __init__(self, x, y, direction, targets: list, explosion_affects:list, spawner=None, speed=10):#10):
+        self.x, self.y = x, y
+        self.direction = direction
+        self.sprite = Sprites.Sprite(
+            ("GRENADE", "GRENADE")
+        )
+        self.explosion_affects = explosion_affects # NOT A VERY GOOD HACK-AROUND
+        self.spawner = spawner
+        self.speed = speed
+        self.real_speed = 0.5
+        self.vec_x = math.cos(math.radians(self.direction))
+        self.vec_y = math.sin(math.radians(self.direction))
+
+        self.timer = 5 * 60
+        self.references = []
+        self.attack_targets:list = targets
+
+        self.cooldown = 0
+
+        self.damage = 90
+
+        all_entities.append(self)
+
+    def action(self):
+        self.real_speed = min(self.real_speed + 0.2, self.speed)
+        collided = False
+        self.timer -= 1
+        if self.timer <= 0:
+            self.destroy()
+
+        __x = int((self.x+self.vec_x * (self.speed*1.5+2))/settings.cell_dimension)
+        __y = int((self.y-self.vec_y * (self.speed*1.5+2))/settings.cell_dimension)
+
+        __xs = int(self.x/settings.cell_dimension)
+        __ys = int(self.y/settings.cell_dimension)
+
+        if MAP_GEOMETRY[__ys][__x] != 0:
+            effects.MuzzleFlash(self.x, self.y)
+            collided = True
+        if MAP_GEOMETRY[__y][__xs] != 0:
+            effects.MuzzleFlash(self.x, self.y)
+            collided = True
+
+        self.x += self.vec_x * self.real_speed
+        self.y -= self.vec_y * self.real_speed
+
+        for target in self.attack_targets:
+            if self.get_hitbox().colliderect(target.get_hitbox()):
+                target.take_damage(90, self.spawner)
+                collided = True
+                break
+                self.destroy()
+
+        for i in range(3):
+            s = Smoke(self.x - self.vec_x * self.speed, self.y + self.vec_y * self.speed
+                      , decrease_multiplier=0.96, initial_scale=2)
+            s.direction = self.direction + 180 + random.randrange(-10, 10)
+            s.speed = random.random() * 3
+
+        if collided:
+            self.destroy()
+
+    def get_hitbox(self):
+        return self.sprite.get_current_image().get_rect(center=(self.x, self.y))
+    def destroy(self):
+        print("Bug")
+        Explosion(self.x - self.vec_x * 8, self.y + self.vec_y * 8, GRENADE_DAMAGE, self.explosion_affects)
+        for l in self.references:
+            deletor.Deleter.request_delete(self, l)
+        deletor.Deleter.request_delete(self, all_entities)
+
+    def render(self, dest:pygame.Surface, x, y):
+        # spr = self.sprite.get_current_image()
+        # spr_rect = spr.get_rect(center=(x,y))
+        juan = self.x # Emotional support
+        dest_surf = pygame.Surface((64, 64), pygame.SRCALPHA)
+        core_rocket = pygame.Surface((24, 24), pygame.SRCALPHA)
+        dest_rect = dest_surf.get_rect(center=(x,y))
+        core_rect = core_rocket.get_rect(center=(x,y))
+        pygame.draw.circle(dest_surf, (255, 255, 255), (32,32), random.random()*31)
+        dest_surf.set_alpha(200)
+        core_rocket.fill((0,0,0,0))
+        pygame.draw.circle(core_rocket, (255, 255, 255), (12,12), random.random()*11)
+
+        dest.blit(core_rocket, core_rect)
+        dest.blit(dest_surf, dest_rect)
+
+    def xy(self):
+        return self.x, self.y
+
 class Explosion:
     def __init__(self, x, y, radius, targets):
         self.x = x
@@ -162,11 +253,29 @@ class Smoke:
         self.sprite.set_image_speed(1/30)
         self.scale = initial_scale
         self.decrease_multiplier = decrease_multiplier
+        self.vec_x = math.cos(math.radians(self.direction)) * self.speed
+        self.vec_y = math.sin(math.radians(self.direction)) * self.speed
+        self.started = True
         all_entities.append(self)
 
     def action(self):
-        self.x += math.cos(math.radians(self.direction)) * self.speed
-        self.y -= math.sin(math.radians(self.direction)) * self.speed
+        if self.started:
+            self.vec_x = math.cos(math.radians(self.direction)) * self.speed
+            self.vec_y = math.sin(math.radians(self.direction)) * self.speed
+            self.started = False
+
+        front_x = self.x + self.vec_x * 2
+        front_y = self.y - self.vec_y * 2
+
+        if MAP_GEOMETRY[int(front_y / settings.cell_dimension)][int(self.x / settings.cell_dimension)] != 0:
+            self.vec_y = 0
+        else:
+            self.x += self.vec_x
+        if MAP_GEOMETRY[int(self.y / settings.cell_dimension)][int(front_x / settings.cell_dimension)] != 0:
+            self.vec_x = 0
+        else:
+            self.y -= self.vec_y
+
         self.sprite.run_sprite()
         if self.sprite.get_image_index() >= self.sprite.get_image_number()-1:
             self.destroy()
@@ -196,5 +305,5 @@ class SoundSource:
         for l in self.references:
             deletor.Deleter.request_delete(self, l)
 
-all_entities_type = Grenade|Explosion|Smoke|DustParticles
+all_entities_type = Grenade|Explosion|Smoke|DustParticles|Rocket
 all_entities:list[all_entities_type] = []
