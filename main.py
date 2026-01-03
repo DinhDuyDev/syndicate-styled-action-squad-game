@@ -24,9 +24,6 @@ import ALL_SPRITES
 pygame.init()
 pygame.font.init()
 
-for fnt in pygame.font.get_fonts():
-    print(fnt)
-
 #####################
 # UI / Screen setup #
 #####################
@@ -147,29 +144,29 @@ class user_input:
     key_pressed = False
 
 def debug_information():
-    if pygame.key.get_pressed()[pygame.K_TAB]:
-        curr_fps = clock.get_fps()
-        pygame.draw.rect(draw_dest, (255, 0, 0), (0, 0, 32, 4))
-        pygame.draw.rect(draw_dest, (0, 255, 0), (0, 0, 32 * (clock.get_fps() / 60), 4))
+    curr_fps = clock.get_fps()
+    pygame.draw.rect(draw_dest, (255, 0, 0), (0, 0, 32, 4))
+    pygame.draw.rect(draw_dest, (0, 255, 0), (0, 0, 32 * (clock.get_fps() / 60), 4))
 
-        # Max FPS
-        if curr_fps > Performance.MAX_FPS:
-            Performance.MAX_FPS = curr_fps
-        if curr_fps < Performance.MIN_FPS:
-            Performance.MIN_FPS = curr_fps
+    # Max FPS
+    if Performance.MIN_FPS < 0.5:
+        Performance.MIN_FPS = curr_fps
+    if curr_fps > Performance.MAX_FPS:
+        Performance.MAX_FPS = curr_fps
+    if curr_fps < Performance.MIN_FPS:
+        Performance.MIN_FPS = curr_fps
 
-        max_fps = font.render(f"max fps: {Performance.MAX_FPS}", False, (255, 255, 255))
-        min_fps = font.render(f"min fps: {Performance.MIN_FPS}", False, (255, 255, 255))
-        max_rect = max_fps.get_rect(topleft=(0, 8))
-        min_rect = min_fps.get_rect(topleft=(0, 16))
-        draw_dest.blit(max_fps, max_rect)
-        draw_dest.blit(min_fps, min_rect)
-        # load_level(not map.GameMap.level)
-    else:
-        # MEMORY:
-        memory_amount = font.render(f"{psutil.Process().memory_info().rss / 1024 ** 2}", False, (255, 255, 255))
-        memory_rect = memory_amount.get_rect(topleft=(0, 0))
-        draw_dest.blit(memory_amount, memory_rect)
+    max_fps = font.render(f"max fps: {Performance.MAX_FPS}", False, (255, 255, 255))
+    min_fps = font.render(f"min fps: {Performance.MIN_FPS}", False, (255, 255, 255))
+    max_rect = max_fps.get_rect(topleft=(0, 8))
+    min_rect = min_fps.get_rect(topleft=(0, 16))
+    draw_dest.blit(max_fps, max_rect)
+    draw_dest.blit(min_fps, min_rect)
+
+    # MEMORY:
+    memory_amount = font.render(f"{psutil.Process().memory_info().rss / 1024 ** 2}", False, (255, 255, 255))
+    memory_rect = memory_amount.get_rect(topleft=(0, 0))
+    draw_dest.blit(memory_amount, memory_rect)
 
 def squad_information_ui():
     ww, wh = settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT
@@ -183,72 +180,63 @@ def squad_information_ui():
             center = (j * cell_w+cell_w/2, i * cell_h + cell_h/2)
             pygame.draw.rect(draw_dest, (0, 0, 0), (j * cell_w, i * cell_h, cell_w, cell_h), width=2)
             # pygame.draw.rect(draw_dest, (0, 0, 0), (j * ww / 16+1, i * wh / 4+1, ww / 16, wh / 4), width=1)
-            number_background = big_font.render(str(ind), False, (90, 90, 90))
+
+            # All members are alive.
+            sq_member = player_enemies.SquadMan.squad_list[ind - 1]
+
+            # Number
+            color = (255,0,0)
+            if sq_member.being_used:
+                color = (0,255,0)
+            if sq_member.is_dead:
+                color = (170,170,170)
+            number_background = big_font.render(str(ind), False, (100, 100, 100))
             numb_background_rect = number_background.get_rect(center=center)
-            foreground = big_font.render(str(ind), False, (170, 170, 170))
+            foreground = big_font.render(str(ind), False, color)
             foreground_rect = foreground.get_rect(center=center)
             draw_dest.blit(number_background, numb_background_rect)
             draw_dest.blit(foreground, foreground_rect)
 
-            if ind-1 < len(player_enemies.SquadMan.squad_list):
-                sq_member = player_enemies.SquadMan.squad_list[ind-1]
-                # Health
-                # sub_height = (1-sq_member.health_ratio())*(wh/4)
-                # health_bar = pygame.Surface((ww/16, sub_height), 0)
-                # health_bar.fill((255, 0, 0))
-                # health_bar.set_alpha(100)
-                # health_bar_rect = health_bar.get_rect(topleft=(j*ww/16, i* wh/4 + wh/4-sub_height))
-                # draw_dest.blit(health_bar, health_bar_rect)
-                # pygame.draw.rect(draw_dest, (0, 0, 0), (j * ww / 16, i * wh / 4, ww / 16, wh / 4), width=2)
 
-                # # Outline
-                health_bar = ALL_SPRITES.ASP["SOLDIER_SILHOUETTE"].copy()
-                w = health_bar.get_width()
-                h = health_bar.get_height()
-                sub_height = min(int(((1-sq_member.health_ratio()) * h)), h)
-                health_bar_rect = health_bar.get_rect(
-                    topright=(top_left[0]+cell_w - 4, top_left[1]+2))
-                draw_dest.blit(health_bar, health_bar_rect)
+            # Health
+            # # Outline
+            health_bar = ALL_SPRITES.ASP["SOLDIER_SILHOUETTE"].copy()
+            w = health_bar.get_width()
+            h = health_bar.get_height()
+            sub_height = min(int(((1-sq_member.health_ratio()) * h)), h)
+            health_bar_rect = health_bar.get_rect(
+                topright=(top_left[0]+cell_w - 4, top_left[1]+2))
+            draw_dest.blit(health_bar, health_bar_rect)
 
-                # Fill
-                health_fill = health_bar.subsurface((0, h-sub_height, w, sub_height))
-                health_arr = pygame.PixelArray(health_fill)
-                health_arr.replace((255, 255, 255), (255, 0, 0))
-                health_arr.replace((175, 175, 175), (255, 0, 0))
-                health_arr.replace((128, 128, 128), (255, 0, 0))
-                health_arr.replace((100, 100, 100), (255, 0, 0))
-                health_arr.close()
-                health_fill_rect = health_fill.get_rect(topright=(top_left[0] + cell_w - 4, top_left[1] + 2 + h - sub_height))
-                draw_dest.blit(health_fill, health_fill_rect)
+            # Fill
+            health_fill = health_bar.subsurface((0, h-sub_height, w, sub_height))
+            health_arr = pygame.PixelArray(health_fill)
+            health_arr.replace((255, 255, 255), (255, 0, 0))
+            health_arr.replace((175, 175, 175), (255, 0, 0))
+            health_arr.replace((128, 128, 128), (255, 0, 0))
+            health_arr.replace((100, 100, 100), (255, 0, 0))
+            health_arr.close()
+            health_fill_rect = health_fill.get_rect(topright=(top_left[0] + cell_w - 4, top_left[1] + 2 + h - sub_height))
+            draw_dest.blit(health_fill, health_fill_rect)
 
-                # health = ingame_font.render(f"DMG: {int(sub_height/h * 100)} %", False, (255, 255, 255))
-                # health_rect = health.get_rect(topleft=(top_left[0]+4, top_left[1]+2))
-                # sq_member.render(draw_dest, center[0], top_left[1]+24, show_stats=False)
-                # draw_dest.blit(health, health_rect)
+            # # WEAPON
+            # Outline
+            wep_spr = ALL_SPRITES.ASP[sq_member.current_weapon_name]
+            sub_width = int((sq_member.cooldown_ratio() * wep_spr.get_width()))
+            w = wep_spr.get_width()
+            h = wep_spr.get_height()
+            selected_weapon_sprite = pygame.transform.rotate(wep_spr, 90)
+            selected_weapon_sprite_rect = selected_weapon_sprite.get_rect(topleft=(top_left[0]+2, top_left[1]+3- w/2 * (w <= 16)))
+            draw_dest.blit(selected_weapon_sprite, selected_weapon_sprite_rect)
 
-                # # WEAPON
-                # Outline
-                wep_spr = ALL_SPRITES.ASP[sq_member.current_weapon_name]
-                sub_width = int((sq_member.cooldown_ratio() * wep_spr.get_width()))
-                w = wep_spr.get_width()
-                h = wep_spr.get_height()
-                selected_weapon_sprite = pygame.transform.rotate(wep_spr, 90)
-                selected_weapon_sprite_rect = selected_weapon_sprite.get_rect(topleft=(top_left[0]+2, top_left[1]+3- w/2 * (w <= 16)))
-                draw_dest.blit(selected_weapon_sprite, selected_weapon_sprite_rect)
+            # Fill
+            cooldown_fill = pygame.transform.rotate(wep_spr.subsurface((0, 0, sub_width, h)), 90)
+            px_arr = pygame.PixelArray(cooldown_fill)
+            px_arr.replace((255, 255, 255), (255, 0, 0))
+            px_arr.close()
+            cooldown_fill_rect = cooldown_fill.get_rect(topleft=(top_left[0]+2, top_left[1]+3-w/2 * (w <= 16) +w-sub_width))
+            draw_dest.blit(cooldown_fill, cooldown_fill_rect)
 
-                # Fill
-                cooldown_fill = pygame.transform.rotate(wep_spr.subsurface((0, 0, sub_width, h)), 90)
-                px_arr = pygame.PixelArray(cooldown_fill)
-                px_arr.replace((255, 255, 255), (255, 0, 0))
-                px_arr.close()
-                cooldown_fill_rect = cooldown_fill.get_rect(topleft=(top_left[0]+2, top_left[1]+3-w/2 * (w <= 16) +w-sub_width))
-                draw_dest.blit(cooldown_fill, cooldown_fill_rect)
-# All Screens:
-# - Title Screen
-# - Menu / Selection Screen
-# - Options Screen
-# - Audio / Selections Screen
-# - Level
 def game():
     while GameVariables.running:
         # Title Screen
@@ -264,13 +252,15 @@ def game():
         else:
             # 640x360 screen
             # 1/4 of the screen
-            # if pygame.key.get_pressed()[pygame.K_TAB]:
-            #     UserInterface.squad_ui_used = True
-            # else:
-            #     UserInterface.squad_ui_used = False
-            UserInterface.squad_ui_used = True
+            if not pygame.key.get_pressed()[pygame.K_TAB]:
+                UserInterface.squad_ui_used = True
+            else:
+                UserInterface.squad_ui_used = False
+
             if UserInterface.squad_ui_used:
                 squad_information_ui()
+            else:
+                debug_information()
 
         # Resizing Screen
         game_screen.screen.blit(pygame.transform.scale_by(pygame.transform.scale(draw_dest, game_screen.get_dimensions()), settings.zoom), (gameCamera.camera_shake_vector(), gameCamera.camera_shake_vector()))
@@ -301,12 +291,41 @@ def in_level():
         elif event.type == pygame.KEYDOWN and can_click:
             if event.key == pygame.K_SPACE:
                 squad_man = player_enemies.SquadMan.squad_list
-                if player_enemies.SquadMan.nums_active() != 4:
+                if player_enemies.SquadMan.nums_active() != player_enemies.SquadMan.nums_alive():
                     for sq in squad_man:
                         sq.being_used = True
                 else:
                     for sq in squad_man:
                         sq.being_used = False
+            else:
+                # Selecting soldiers individually
+                all_soldiers_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
+                squad_list = player_enemies.SquadMan.squad_list
+
+                for i in range(len(squad_list)):
+                    squad_man = player_enemies.SquadMan.squad_list
+                    if pygame.key.get_pressed()[all_soldiers_keys[i]]:
+                        if pygame.key.get_pressed()[pygame.K_LSHIFT]:
+                            squad_man[i].being_used = not squad_man[i].being_used
+                        else:
+                            squad_man[i].being_used = True
+                            for j in range(len(squad_man)):
+                                if j != i:
+                                    squad_man[j].being_used = False
+
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            index = 0
+            ww, wh = settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT
+            cell_w, cell_h = ww / 16, wh / 4
+            sq_ls = player_enemies.SquadMan.squad_list
+            for i in range(2):
+                for j in range(2):
+                    hit_rect = pygame.Rect((j * cell_w, i * cell_h, cell_w, cell_h))
+                    if hit_rect.collidepoint(mx, my):
+                        if not sq_ls[index].is_dead:
+                            sq_ls[index].being_used = not sq_ls[index].being_used
+                    index += 1
+
 
     ####################################
     # EVERYTHING INTERACTING WITH GAME #
@@ -328,28 +347,10 @@ def in_level():
 
             user_input.mouse_pressed = True
             if not clicking_on_player:
-                if LoadedScene.loaded_map[int(my/settings.cell_dimension)+c_y][int(mx/settings.cell_dimension)+c_x] == 0:
+                print(f"Picked point: {LoadedScene.loaded_map[int(my/settings.cell_dimension)+c_y][int(mx/settings.cell_dimension)+c_x]}", end=" -> ")
+                if LoadedScene.loaded_map[int(my/settings.cell_dimension)+c_y][int(mx/settings.cell_dimension)+c_x] in tiles.TRAVERSABLE_TILES:
+                    print("Traversable")
                     p.move_squad(mx+_x, my+_y, LoadedScene.loaded_map)
-
-        # Selecting soldiers individually
-        all_soldiers_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
-        squad_list = player_enemies.SquadMan.squad_list
-        any_keys_being_pressed = False
-        for i in range(len(all_soldiers_keys)):
-            if pygame.key.get_pressed()[i]:
-                any_keys_being_pressed = True
-
-        if not any_keys_being_pressed:
-            user_input.key_pressed = False
-        for i in range(len(squad_list)):
-            squad_man = player_enemies.SquadMan.squad_list
-            if not user_input.key_pressed:
-                if pygame.key.get_pressed()[all_soldiers_keys[i]]:
-                    user_input.key_pressed = True
-                    squad_man[i].being_used = True
-                    for j in range(len(squad_list)):
-                        if j != i:
-                            squad_man[j].being_used = False
 
     ###############
     # ALL CAMERAS #
@@ -366,7 +367,7 @@ def in_level():
     #######################
     for y in range(c_y, c_y + settings.ver_cells//2//settings.zoom):#settings.ver_cells):
         for x in range(c_x, c_x + settings.hor_cells//2//settings.zoom):#settings.hor_cells):
-            if LoadedScene.loaded_map[y][x] != 0 and LoadedScene.loaded_map[y][x] != 3:
+            if LoadedScene.loaded_map[y][x] not in tiles.INVISIBLE_TILES:
                 _x = x*settings.cell_dimension - c_x * settings.cell_dimension
                 _y = y*settings.cell_dimension - c_y * settings.cell_dimension
 
@@ -396,18 +397,19 @@ def in_level():
     # Squad
     player_enemies.SquadMan.make_footsteps()
     for sq in player_enemies.SquadMan.squad_list:
-        _x = c_x * settings.cell_dimension
-        _y = c_y * settings.cell_dimension
-        col = (255, 0, 0)
-        if sq.being_used:
-            col = (58, 255, 0)
-        num = ingame_font.render(str(player_enemies.SquadMan.squad_list.index(sq)+1), False, col)
-        num_rect = num.get_rect(center=(sq.x-_x, sq.y-_y-16))
-        draw_dest.blit(num, num_rect)
-        md_dir = utilityfuncs.point_direction(sq.x-_x, sq.y-_y, mx, my)
-        sq.action(LoadedScene.loaded_map)
-        sq.firing(md_dir)
-        sq.check_death()
+        if not sq.is_dead:
+            _x = c_x * settings.cell_dimension
+            _y = c_y * settings.cell_dimension
+            col = (255, 0, 0)
+            if sq.being_used:
+                col = (58, 255, 0)
+            num = ingame_font.render(str(player_enemies.SquadMan.squad_list.index(sq)+1), False, col)
+            num_rect = num.get_rect(center=(sq.x-_x, sq.y-_y-16))
+            draw_dest.blit(num, num_rect)
+            md_dir = utilityfuncs.point_direction(sq.x-_x, sq.y-_y, mx, my)
+            sq.action(LoadedScene.loaded_map)
+            sq.firing(md_dir)
+            sq.check_death()
 
     # All enemies
     for e in player_enemies.enemy_list:

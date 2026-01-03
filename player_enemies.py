@@ -121,65 +121,92 @@ def gen_mobster_sprites():
     return {
         "Pistol" : Sprites.Sprite(
             (
-                "MOBSTER_TORSO_0PISTOL",
-                "MOBSTER_TORSO_45PISTOL",
-                "MOBSTER_TORSO_90PISTOL",
-                "MOBSTER_TORSO_135PISTOL",
-                "MOBSTER_TORSO_180PISTOL",
-                "MOBSTER_TORSO_225PISTOL",
-                "MOBSTER_TORSO_270PISTOL",
-                "MOBSTER_TORSO_315PISTOL",
+                "MOBSTER_0_PISTOL",
+                "MOBSTER_45_PISTOL",
+                "MOBSTER_90_PISTOL",
+                "MOBSTER_135_PISTOL",
+                "MOBSTER_180_PISTOL",
+                "MOBSTER_225_PISTOL",
+                "MOBSTER_270_PISTOL",
+                "MOBSTER_315_PISTOL",
             )
         ),
 
         "Revolver" : Sprites.Sprite(
             (
-                "MOBSTER_TORSO_0PISTOL",
-                "MOBSTER_TORSO_45PISTOL",
-                "MOBSTER_TORSO_90PISTOL",
-                "MOBSTER_TORSO_135PISTOL",
-                "MOBSTER_TORSO_180PISTOL",
-                "MOBSTER_TORSO_225PISTOL",
-                "MOBSTER_TORSO_270PISTOL",
-                "MOBSTER_TORSO_315PISTOL",
+                "MOBSTER_0_REVOLVER",
+                "MOBSTER_45_REVOLVER",
+                "MOBSTER_90_REVOLVER",
+                "MOBSTER_135_REVOLVER",
+                "MOBSTER_180_REVOLVER",
+                "MOBSTER_225_REVOLVER",
+                "MOBSTER_270_REVOLVER",
+                "MOBSTER_315_REVOLVER",
             )
         ),
         "Shotgun" : Sprites.Sprite(
             (
-                "MOBSTER_TORSO_0SHOTGUN",
-                "MOBSTER_TORSO_45SHOTGUN",
-                "MOBSTER_TORSO_90SHOTGUN",
-                "MOBSTER_TORSO_135SHOTGUN",
-                "MOBSTER_TORSO_180SHOTGUN",
-                "MOBSTER_TORSO_225SHOTGUN",
-                "MOBSTER_TORSO_270SHOTGUN",
-                "MOBSTER_TORSO_315SHOTGUN",
+                "MOBSTER_0_SHOTGUN",
+                "MOBSTER_45_SHOTGUN",
+                "MOBSTER_90_SHOTGUN",
+                "MOBSTER_135_SHOTGUN",
+                "MOBSTER_180_SHOTGUN",
+                "MOBSTER_225_SHOTGUN",
+                "MOBSTER_270_SHOTGUN",
+                "MOBSTER_315_SHOTGUN",
             )
         ),
         "Thompson" : Sprites.Sprite(
             (
-                "MOBSTER_TORSO_0THOMPSON",
-                "MOBSTER_TORSO_45THOMPSON",
-                "MOBSTER_TORSO_90THOMPSON",
-                "MOBSTER_TORSO_135THOMPSON",
-                "MOBSTER_TORSO_180THOMPSON",
-                "MOBSTER_TORSO_225THOMPSON",
-                "MOBSTER_TORSO_270THOMPSON",
-                "MOBSTER_TORSO_315THOMPSON",
+                "MOBSTER_0_THOMPSON",
+                "MOBSTER_45_THOMPSON",
+                "MOBSTER_90_THOMPSON",
+                "MOBSTER_135_THOMPSON",
+                "MOBSTER_180_THOMPSON",
+                "MOBSTER_225_THOMPSON",
+                "MOBSTER_270_THOMPSON",
+                "MOBSTER_315_THOMPSON",
             )
         ),
         "Bar" : Sprites.Sprite(
             (
-                "MOBSTER_TORSO_0BAR",
-                "MOBSTER_TORSO_45BAR",
-                "MOBSTER_TORSO_90BAR",
-                "MOBSTER_TORSO_135BAR",
-                "MOBSTER_TORSO_180BAR",
-                "MOBSTER_TORSO_225BAR",
-                "MOBSTER_TORSO_270BAR",
-                "MOBSTER_TORSO_315BAR",
+                "MOBSTER_0_BAR",
+                "MOBSTER_45_BAR",
+                "MOBSTER_90_BAR",
+                "MOBSTER_135_BAR",
+                "MOBSTER_180_BAR",
+                "MOBSTER_225_BAR",
+                "MOBSTER_270_BAR",
+                "MOBSTER_315_BAR",
             )
         ),
+
+        "GrenadeLauncher" : Sprites.Sprite(
+            (
+                "MOBSTER_0_GLAUNCHER",
+                "MOBSTER_45_GLAUNCHER",
+                "MOBSTER_90_GLAUNCHER",
+                "MOBSTER_135_GLAUNCHER",
+                "MOBSTER_180_GLAUNCHER",
+                "MOBSTER_225_GLAUNCHER",
+                "MOBSTER_270_GLAUNCHER",
+                "MOBSTER_315_GLAUNCHER",
+            )
+        ),
+
+        "RocketLauncher": Sprites.Sprite(
+            (
+                "MOBSTER_0_RLAUNCHER",
+                "MOBSTER_45_RLAUNCHER",
+                "MOBSTER_90_RLAUNCHER",
+                "MOBSTER_135_RLAUNCHER",
+                "MOBSTER_180_RLAUNCHER",
+                "MOBSTER_225_RLAUNCHER",
+                "MOBSTER_270_RLAUNCHER",
+                "MOBSTER_315_RLAUNCHER",
+            )
+        ),
+
         "LEGS" : Sprites.Sprite(
             (
                 "MOBSTER_LEG_LEFTUP",
@@ -198,7 +225,7 @@ def fire_gun(obj, direction):
         d = md_dir // 45
         vec_x = math.cos(math.radians(d * 45)) * 8
         vec_y = math.sin(math.radians(d * 45)) * 8
-
+        # obj.focused = False#True
         wep = obj.get_weapon()
 
         for i in range(wep.pellets):
@@ -246,6 +273,7 @@ def switch_sprite(obj):
         obj.sprite = obj.rocket_sprite
 
 class SquadMan:
+    INDEX = 0
     MAX_SQUAD = 4
     squad_list:list = []
     squad_footstep_counter = 0
@@ -253,7 +281,14 @@ class SquadMan:
     def nums_active(cls):
         nums = 0
         for i in SquadMan.squad_list:
-            if i.being_used:
+            if (not i.is_dead) and i.being_used:
+                nums += 1
+        return nums
+    @classmethod
+    def nums_alive(cls):
+        nums = 0
+        for i in SquadMan.squad_list:
+            if not i.is_dead:
                 nums += 1
         return nums
     @classmethod
@@ -261,12 +296,16 @@ class SquadMan:
         spd_modifier = (2-SquadMan.nums_active()/4) * 1.25
         if SquadMan.squad_footstep_counter >= 30 * (1/spd_modifier):
             for e in SquadMan.squad_list:
-                if e.being_used and len(e.move_path) != 0:
+                if (not e.is_dead) and e.being_used and len(e.move_path) != 0:
                     entities.SoundSource(e.x, e.y, 10 * (6 / spd_modifier ** 2)) # Making footstep noises
                     break
             SquadMan.squad_footstep_counter = 0
         else:
             SquadMan.squad_footstep_counter += 1
+
+    @classmethod
+    def living_squad_members(cls):
+        return [sq_member for sq_member in SquadMan.squad_list if sq_member is not None]
 
     def __init__(self, loc:tuple[float, float]):
         self.x, self.y = loc
@@ -276,6 +315,8 @@ class SquadMan:
         self.max_pain_amount = 100
         self.dest_x = self.x
         self.dest_y = self.y
+        self.index = SquadMan.INDEX
+        SquadMan.INDEX += 1
 
         all_sprs = gen_soldier_sprites()
 
@@ -316,6 +357,8 @@ class SquadMan:
         self.cooldown = 0
         self.cooldown_steps = 0
         self.speed = 0.5
+
+        self.is_dead = False
 
         SquadMan.squad_list.append(self)
 
@@ -371,28 +414,29 @@ class SquadMan:
 
         # self.hp = 10000
     def render(self, dest:pygame.Surface, x, y, show_stats=False):
-        # Being used
-        vec_x = math.cos(math.radians(self.knock_back_dir)) * self.knock_back_strength
-        vec_y = math.sin(math.radians(self.knock_back_dir)) * self.knock_back_strength
-        x += vec_x
-        y -= vec_y
+        if not self.is_dead:
+            # Being used
+            vec_x = math.cos(math.radians(self.knock_back_dir)) * self.knock_back_strength
+            vec_y = math.sin(math.radians(self.knock_back_dir)) * self.knock_back_strength
+            x += vec_x
+            y -= vec_y
 
-        self.switch_sprites()
-        dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)))
-        dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
-        # if self.being_used:
-        #     pygame.draw.rect(dest, (0, 255, 255), (x-1, y-7, 2, 2))
-        # else:
-        #     pygame.draw.rect(dest, (255, 0, 255), (x-1, y-7, 2, 2))
+            self.switch_sprites()
+            dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)))
+            dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
 
-        # Health
-        if show_stats:
-            pygame.draw.rect(dest, (255, 0, 0), (x - 5, y - 9, 10, 2))
-            pygame.draw.rect(dest, (0, 255, 0), (x - 5, y - 9, 10 * self.hp / self.max_hp, 2))
+            # Health
+            if show_stats:
+                pygame.draw.rect(dest, (255, 0, 0), (x - 5, y - 9, 10, 2))
+                pygame.draw.rect(dest, (0, 255, 0), (x - 5, y - 9, 10 * self.hp / self.max_hp, 2))
 
-            pygame.draw.rect(dest, (0, 0, 0), (x - 10, y-3, 2, 13))
-            r = self.cooldown / self.get_weapon().fire_cooldown
-            pygame.draw.rect(dest, (255, 255, 255), (x - 10, y+10 - 13 * r, 2, 13 * r))
+                pygame.draw.rect(dest, (0, 0, 0), (x - 10, y-3, 2, 13))
+                r = self.cooldown / self.get_weapon().fire_cooldown
+                pygame.draw.rect(dest, (255, 255, 255), (x - 10, y+10 - 13 * r, 2, 13 * r))
+        else:
+            side_ways = pygame.transform.rotate(ALL_SPRITES.ASP["SOLDIER_DEAD_BODY"], 270)
+            side_ways_rect = side_ways.get_rect(center=(x,y))
+            dest.blit(side_ways, side_ways_rect)
 
     def get_hitbox(self):
         return self.sprite.get_current_image().get_rect(center=(self.x, self.y))
@@ -423,10 +467,13 @@ class SquadMan:
 
     def check_death(self):
         if self.hp < 0:
-            self.destroy()
+            self.is_dead = True
+            self.being_used = False
+            # self.destroy()
 
     def destroy(self):
         deletor.Deleter.request_delete(self, SquadMan.squad_list)
+        # SquadMan.squad_list.insert(SquadMan.squad_list.index(self), None)
         for l in self.references:
             deletor.Deleter.request_delete(self, l)
 
@@ -466,7 +513,7 @@ def move_squad(x, y, m):
     dist_travel = 7 * (num_active / SquadMan.MAX_SQUAD)
 
     for sq_m in sq_ls:
-        if sq_m.being_used:
+        if sq_m.being_used and (not sq_m.is_dead):
             dx, dy = x + math.cos(math.radians(d)) * dist_travel, y - math.sin(math.radians(d)) * dist_travel
             tx = int(dx/settings.cell_dimension)
             ty = int(dy/settings.cell_dimension)
@@ -474,13 +521,14 @@ def move_squad(x, y, m):
                 if m[ty][tx] == 0:
                     sq_m.set_dest(dx, dy, m)
                     sq_m.focused = True
-        d +=  360 / num_active
+            d +=  360 / num_active
 
 # Default enemies are mobsters, so health will be a little lower
-class Enemy:
+class EnemyMobster:
     def __init__(self, loc:tuple[float, float], exclude=False, weapon_type="Pistol"):
         self.x, self.y = loc
-        self.hp = 100
+        self.max_hp = 50
+        self.hp = self.max_hp
         self.dest_x = self.x
         self.dest_y = self.y
         self.state = "IDLE"
@@ -506,6 +554,8 @@ class Enemy:
         self.shotgun_sprite = all_sprs["Shotgun"]
         self.thompson_sprite = all_sprs["Thompson"]
         self.bar_sprite = all_sprs["Bar"]
+        self.grenade_sprite = all_sprs["GrenadeLauncher"]
+        self.rocket_sprite = all_sprs["RocketLauncher"]
         self.sprite = self.thompson_sprite
 
         self.leg_sprite = all_sprs["LEGS"]
@@ -533,6 +583,8 @@ class Enemy:
         self.knock_back_dir = 0
         self.knock_back_strength = 0
 
+        self.is_dead = False
+
         # The sound heard by the enemy
         self.sound_heard:entities.SoundSource|None = None
         if not exclude:
@@ -554,7 +606,7 @@ class Enemy:
     def seeing_enemy(self, enemies:list, m:list[list[int]]):
         fov = 120
         for e in enemies:
-            if utilityfuncs.line_of_sight(self.x, self.y, e.xy()[0], e.xy()[1], m):
+            if (not e.is_dead) and utilityfuncs.line_of_sight(self.x, self.y, e.xy()[0], e.xy()[1], m):
                 self.target_x = e.xy()[0]
                 self.target_y = e.xy()[1]
                 direction_to_enemy = utilityfuncs.point_direction(self.x, self.y, e.x, e.y)
@@ -565,7 +617,7 @@ class Enemy:
 
     def enemy_seen(self, enemies:list, m:list[list[int]]):
         for e in enemies:
-            if utilityfuncs.line_of_sight(self.x, self.y, e.xy()[0], e.xy()[1], m):
+            if (not e.is_dead) and utilityfuncs.line_of_sight(self.x, self.y, e.xy()[0], e.xy()[1], m):
                 return e
         return None
 
@@ -580,7 +632,7 @@ class Enemy:
     def alert_others(self):
         alert_num = 2
         for e in enemy_list:
-            if utilityfuncs.point_distance(self.x, self.y, e.x, e.y) < 60 and alert_num > 0:
+            if (not e.is_dead) and utilityfuncs.point_distance(self.x, self.y, e.x, e.y) < 60 and alert_num > 0:
                 if utilityfuncs.line_of_sight(self.x, self.y, e.x, e.y, MAP_GEOMETRY):
                     if type(self) is type(e):
                         e.target_x = self.target_x
@@ -665,7 +717,12 @@ class Enemy:
             __d = self.aim_direction# # utilityfuncs.point_direction(self.x, self.y, self.target_x, self.target_y) #
             if self.seeing_enemy(SquadMan.squad_list, MAP_GEOMETRY):
                 self.sprite.set_image_index(int(__d / 45))
-                self.firing(__d + random.randrange(-1, 1)) #* self.inaccuracy_multiplier)
+                dist_to_target = utilityfuncs.point_distance(self.x, self.y, self.target_x, self.target_y)
+                can_fire = True
+                if self.current_weapon_name == "RocketLauncher" and dist_to_target < 96:
+                    can_fire = False
+                if can_fire:
+                    self.firing(__d + random.randrange(-1, 1)) #* self.inaccuracy_multiplier)
                 self.stop_moving()
             else:
                 self.is_firing = False
@@ -767,16 +824,16 @@ class Enemy:
         dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)), None)
         dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
         pygame.draw.rect(dest, (255, 0, 0), (x-5, y-9, 10, 2))
-        pygame.draw.rect(dest, (0, 255, 0), (x-5, y-9, 10*self.hp/100, 2))
+        pygame.draw.rect(dest, (0, 255, 0), (x-5, y-9, 10*self.hp/self.max_hp, 2))
 
         # Alerted
         if self.alerted_saw_player > 0:
-            alr_spr = ALL_SPRITES.ASP["ALERTED0"]
+            alr_spr = pygame.transform.scale_by(ALL_SPRITES.ASP["ALERTED0"], 0.5)
             fluctuate = random.randint(0, 100)
             if fluctuate <= 50:
                 alr_spr = ALL_SPRITES.ASP["ALERTED1"]
             alr_rect = alr_spr.get_rect(center=(x, y-8))
-            dest.blit(pygame.transform.scale_by(alr_spr, 0.5), alr_rect)
+            dest.blit(alr_spr, alr_rect)
 
     def get_hitbox(self):
         return self.sprite.get_current_image().get_rect(center=(self.x, self.y))
@@ -813,7 +870,7 @@ class Enemy:
         deletor.Deleter.request_delete(self, enemy_list)
 
     def __copy__(self):
-        return Enemy((self.x, self.y), exclude=False, weapon_type=self.current_weapon_name)
+        return EnemyMobster((self.x, self.y), exclude=False, weapon_type=self.current_weapon_name)
 
     def __repr__(self):
         return f"{self.repr_name}->({self.x}, {self.y})"
@@ -827,16 +884,17 @@ class Enemy:
     def __eq__(self, other):
         return self.y == other.y
 
-all_enemies_type = Enemy
+all_enemies_type = EnemyMobster
 
 
 def enemies_generator(): # CAN ONLY BE USED IF A VIDEO MODE HAS BEEN SET
     if pygame.display.get_init():
         misc_objs_dict = {
-            "EnemyMobsterPistol": Enemy((0, 0), weapon_type="Pistol", exclude=True),
-            "EnemyMobsterShotgun": Enemy((0, 0), weapon_type="Shotgun", exclude=True),
-            "EnemyMobsterThompson": Enemy((0, 0), weapon_type="Thompson", exclude=True),
-            "EnemyMobsterBar": Enemy((0, 0), weapon_type="Bar", exclude=True)
+            "EnemyMobsterPistol": EnemyMobster((0, 0), weapon_type="Pistol", exclude=True),
+            "EnemyMobsterShotgun": EnemyMobster((0, 0), weapon_type="Shotgun", exclude=True),
+            "EnemyMobsterThompson": EnemyMobster((0, 0), weapon_type="Thompson", exclude=True),
+            "EnemyMobsterBar": EnemyMobster((0, 0), weapon_type="Bar", exclude=True),
+            "EnemyMobsterRocketLauncher" : EnemyMobster((0, 0), weapon_type="RocketLauncher", exclude=True)
         }
         return misc_objs_dict
     return AssertionError("PYGAME DISPLAY WAS NOT INITIALIZED")

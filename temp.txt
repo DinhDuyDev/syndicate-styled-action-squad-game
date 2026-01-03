@@ -1,1 +1,1 @@
-sprites/rocket_spr/rocket.png
+sprites/level_tiles/goal.png

@@ -1,4 +1,5 @@
 import math
+import tiles
 
 
 class Node:
@@ -27,7 +28,7 @@ def find_dist(x, y, x1, y1):
     return math.sqrt((x1 - x)**2 + (y1 - y)**2) * 10
 
 def pathfind(x, y, x1, y1, mat):
-    if mat[y1][x1] != 0:
+    if mat[y1][x1] not in tiles.TRAVERSABLE_TILES:
         return []
     neighborhood = [
         (-1, -1), (0, -1), (1, -1),
@@ -69,7 +70,10 @@ def pathfind(x, y, x1, y1, mat):
             if in_closed:
                 continue
 
-            non_traversable = mat[curr_node.y+dy][curr_node.x+dx] != 0
+            non_traversable = mat[curr_node.y+dy][curr_node.x+dx] not in tiles.TRAVERSABLE_TILES
+            n = mat[curr_node.y+dy][curr_node.x+dx]
+            if n == 6 and n in tiles.TRAVERSABLE_TILES:
+                print("6 is traversable")
             if non_traversable:
                 continue
 

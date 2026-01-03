@@ -116,8 +116,8 @@ class Rocket:
         if self.timer <= 0:
             self.destroy()
 
-        __x = int((self.x+self.vec_x * (self.speed*1.5+2))/settings.cell_dimension)
-        __y = int((self.y-self.vec_y * (self.speed*1.5+2))/settings.cell_dimension)
+        __x = int((self.x+self.vec_x * (self.speed+2))/settings.cell_dimension)
+        __y = int((self.y-self.vec_y * (self.speed+2))/settings.cell_dimension)
 
         __xs = int(self.x/settings.cell_dimension)
         __ys = int(self.y/settings.cell_dimension)
@@ -194,12 +194,22 @@ class Explosion:
         camera.Camera.activeCam.screen_shake(3)
 
         # Effects
-        for i in range(8):
-            x_rand = self.x+random.randint(-16, 16)
-            y_rand = self.y+random.randint(-16, 16)
-            Smoke(x_rand, y_rand, initial_scale=4)
+        for i in range(16):
+            x_rand = self.x+random.randint(-32, 32)
+            y_rand = self.y+random.randint(-32, 32)
+            Smoke(x_rand, y_rand)
 
         # Rays
+        for i in range(4):
+            d = random.random()*360
+            l = random.random()*112 + 16
+            vec_x = math.cos(math.radians(d)) * l
+            vec_y = math.sin(math.radians(d)) * l
+            effects.Ray(self.x, self.y, self.x+vec_x, self.y-vec_y)
+
+        # Smoke rays
+        for i in range(7):
+            SmokeTrail(self.x, self.y, random.random()*0.2+1, random.random()*360, last_length=2*60)
 
     def action(self):
         self.destroy()
@@ -288,6 +298,75 @@ class Smoke:
         dest.blit(spr, spr_rect)
 
     def destroy(self):
+        for l in self.references:
+            deletor.Deleter.request_delete(self, l)
+        deletor.Deleter.request_delete(self, all_entities)
+
+class SmokeTrail:
+    def __init__(self, x:float, y:float, speed:float, direction:float, create_cooldown:int=1, last_length:int=60, gravity:bool=False):
+        self.x, self.y = x, y
+        self.direction = direction
+        self.speed = speed
+        self.vec_x = math.cos(math.radians(direction)) * speed
+        self.vec_y = math.sin(math.radians(direction)) * speed
+        self.create_cooldown = create_cooldown
+        self.cooldown = 0
+        self.last_length = last_length
+        self.references = []
+
+        # Gravity effects
+        self.gravity = gravity
+        self.grav_speed = -random.random() * 5
+        self.grav_accel = 0.2
+        self.grav_limit = 4
+
+        all_entities.append(self)
+
+
+    def action(self):
+        front_x = self.x + self.vec_x * 2
+        front_y = self.y - self.vec_y * 2 + self.grav_speed
+        self.x += self.vec_x
+        self.y -= self.vec_y
+
+        if MAP_GEOMETRY[int(front_y / settings.cell_dimension)][int(self.x / settings.cell_dimension)] != 0:
+            self.vec_y = 0
+            if self.grav_speed > 0:
+                self.grav_speed = 0
+            else:
+                self.grav_speed = -self.grav_speed
+        else:
+            self.x += self.vec_x
+        if MAP_GEOMETRY[int(self.y / settings.cell_dimension)][int(front_x / settings.cell_dimension)] != 0:
+            self.vec_x = 0
+        else:
+            self.y -= self.vec_y
+
+        # Gravity
+        if self.gravity:
+            self.y += self.grav_speed
+            self.grav_speed = min(self.grav_speed + self.grav_accel, self.grav_limit)
+
+        # Dying
+        self.last_length -= 1
+        if self.last_length <= 0:
+            self.destroy()
+
+        # Create smoke
+        self.cooldown += 1
+        if self.cooldown > self.create_cooldown:
+            s = Smoke(self.x, self.y)
+            print("Created Smoke")
+            s.direction = self.direction + random.randrange(-20, 20)
+            s.speed = random.random() * 2
+            self.cooldown = 0
+
+    def render(self, dest:pygame.Surface, x, y):
+        pass
+
+    def destroy(self):
+        for l in self.references:
+            deletor.Deleter.request_delete(self, l)
         deletor.Deleter.request_delete(self, all_entities)
 
 class SoundSource:
@@ -305,5 +384,5 @@ class SoundSource:
         for l in self.references:
             deletor.Deleter.request_delete(self, l)
 
-all_entities_type = Grenade|Explosion|Smoke|DustParticles|Rocket
+all_entities_type = Grenade|Explosion|Smoke|SmokeTrail|DustParticles|Rocket
 all_entities:list[all_entities_type] = []
