@@ -105,11 +105,12 @@ class Rocket:
 
         self.cooldown = 0
 
-        self.damage = 90
-
+        self.damage = 120
+        self.rocket_scale = 0.1
         all_entities.append(self)
 
     def action(self):
+        self.rocket_scale = min(self.rocket_scale + 0.05, 1)
         self.real_speed = min(self.real_speed + 0.2, self.speed)
         collided = False
         self.timer -= 1
@@ -149,7 +150,7 @@ class Rocket:
             self.destroy()
 
     def get_hitbox(self):
-        return self.sprite.get_current_image().get_rect(center=(self.x, self.y))
+        return pygame.transform.scale_by(self.sprite.get_current_image(), self.rocket_scale).get_rect(center=(self.x, self.y))
     def destroy(self):
         print("Bug")
         Explosion(self.x - self.vec_x * 8, self.y + self.vec_y * 8, GRENADE_DAMAGE, self.explosion_affects)
@@ -202,7 +203,7 @@ class Explosion:
         # Rays
         for i in range(4):
             d = random.random()*360
-            l = random.random()*112 + 16
+            l = random.random()*112 + 48
             vec_x = math.cos(math.radians(d)) * l
             vec_y = math.sin(math.radians(d)) * l
             effects.Ray(self.x, self.y, self.x+vec_x, self.y-vec_y)
@@ -356,7 +357,6 @@ class SmokeTrail:
         self.cooldown += 1
         if self.cooldown > self.create_cooldown:
             s = Smoke(self.x, self.y)
-            print("Created Smoke")
             s.direction = self.direction + random.randrange(-20, 20)
             s.speed = random.random() * 2
             self.cooldown = 0
@@ -386,3 +386,8 @@ class SoundSource:
 
 all_entities_type = Grenade|Explosion|Smoke|SmokeTrail|DustParticles|Rocket
 all_entities:list[all_entities_type] = []
+
+enemyGroup = pygame.sprite.Group()
+class enemy(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()

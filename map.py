@@ -79,5 +79,5 @@ def load_level(game_map_object:Map, file_path):
 
 
 GameMap = Map()
-# load_level(GameMap, "levels/warehouse.dmf")
-load_level(GameMap, "levels/barricaded.dmf")
+load_level(GameMap, "levels/barricaded_soldiers.dmf")
+# load_level(GameMap, "levels/barricaded.dmf")

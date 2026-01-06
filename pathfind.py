@@ -1,6 +1,6 @@
 import math
 import tiles
-
+import heapq
 
 class Node:
     def __init__(self, x, y, g, h):
@@ -30,11 +30,11 @@ def find_dist(x, y, x1, y1):
 def pathfind(x, y, x1, y1, mat):
     if mat[y1][x1] not in tiles.TRAVERSABLE_TILES:
         return []
-    neighborhood = [
+    neighborhood = {
         (-1, -1), (0, -1), (1, -1),
         (-1, 0), (1, 0),
         (-1, 1), (0, 1), (1, 1)
-    ]
+    }
     matrix_width = len(mat[0])
     matrix_height = len(mat)
 

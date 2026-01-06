@@ -3,6 +3,7 @@ import math
 import copy
 import ALL_SPRITES
 import pathfind
+# import better_pathfinding
 import settings
 import utilityfuncs
 import Sprites
@@ -15,11 +16,14 @@ import deletor
 import entities
 
 WEAPONS_REF = Weapons.WEAPONS_REF
-MAP_GEOMETRY:list[list[int]] = []
 
+class MapData:
+    MAP_GEOMETRY:list[list[int]] = []
+    # @classmethod
+    # def find_all_hiding_spots(cls) -> set[tuple[int, int]]:
+        # All places
 # Enemy mobster
 enemy_list = []
-
 def gen_soldier_sprites():
     return {
         "Pistol" : Sprites.Sprite(
@@ -225,7 +229,7 @@ def fire_gun(obj, direction):
         d = md_dir // 45
         vec_x = math.cos(math.radians(d * 45)) * 8
         vec_y = math.sin(math.radians(d * 45)) * 8
-        # obj.focused = False#True
+        obj.focused = False#True
         wep = obj.get_weapon()
 
         for i in range(wep.pellets):
@@ -308,6 +312,7 @@ class SquadMan:
         return [sq_member for sq_member in SquadMan.squad_list if sq_member is not None]
 
     def __init__(self, loc:tuple[float, float]):
+        super().__init__()
         self.x, self.y = loc
         self.max_hp = 100
         self.hp = self.max_hp
@@ -318,19 +323,19 @@ class SquadMan:
         self.index = SquadMan.INDEX
         SquadMan.INDEX += 1
 
-        all_sprs = gen_soldier_sprites()
+        all_sprites = gen_soldier_sprites()
 
         self.references = []
 
-        self.pistol_sprite = all_sprs["Pistol"]
-        self.revolver_sprite = all_sprs["Revolver"]
-        self.shotgun_sprite = all_sprs["Shotgun"]
-        self.thompson_sprite = all_sprs["Thompson"]
-        self.bar_sprite = all_sprs["Bar"]
-        self.grenade_sprite = all_sprs["GrenadeLauncher"]
-        self.rocket_sprite = all_sprs["RocketLauncher"]
+        self.pistol_sprite = all_sprites["Pistol"]
+        self.revolver_sprite = all_sprites["Revolver"]
+        self.shotgun_sprite = all_sprites["Shotgun"]
+        self.thompson_sprite = all_sprites["Thompson"]
+        self.bar_sprite = all_sprites["Bar"]
+        self.grenade_sprite = all_sprites["GrenadeLauncher"]
+        self.rocket_sprite = all_sprites["RocketLauncher"]
 
-        self.leg_normal_sprite = all_sprs["LEGS"]
+        self.leg_normal_sprite = all_sprites["LEGS"]
 
         self.leg_crouch_sprite = Sprites.Sprite(
             (
@@ -343,7 +348,6 @@ class SquadMan:
 
         self.crouching = False # Crouching enemy
         self.sprite = self.pistol_sprite
-        self.frames = 0
         self.move_path = []
         self.focused = True # so that they look at where they're going
         self.being_used = True
@@ -360,6 +364,7 @@ class SquadMan:
 
         self.is_dead = False
 
+        #SquadMan.squad_list.append(self)
         SquadMan.squad_list.append(self)
 
     def set_dest(self, x, y, m):
@@ -372,9 +377,10 @@ class SquadMan:
     def xy(self):
         return self.x, self.y
 
-    def action(self, m:list[list[int]]):
+    def action(self):
         # self.cooldown = max(self.cooldown - 0.01, 0)
-        self.hp = min(self.hp + 0.2 * (1 - (self.pain_amount / 200)), self.max_hp)
+        if self.hp < self.max_hp/2:
+            self.hp = min(self.hp + 0.2 * (1 - (self.pain_amount / 200)), self.max_hp)
         self.pain_amount = min(max(self.pain_amount - 0.1, 0), 200)
 
         if self.knock_back_strength >= 0.001:
@@ -382,8 +388,11 @@ class SquadMan:
             self.leg_sprite.set_image_speed(4/30)
         else:
             self.knock_back_strength = 0
-        spd_modifier = (2-SquadMan.nums_active()/4) * 1.25
 
+        self.movement()
+
+    def movement(self):
+        spd_modifier = (2 - SquadMan.nums_active() / 4) * 1.25
         if len(self.move_path) == 0:
             if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 2:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, self.dest_x, self.dest_y)
@@ -394,25 +403,24 @@ class SquadMan:
                 self.leg_sprite.set_image_index(2)
                 self.leg_sprite.set_image_speed(0)
         else:
-            x, y = (self.move_path[0][0] * settings.cell_dimension + settings.cell_dimension/2
-                        , self.move_path[0][1] * settings.cell_dimension + settings.cell_dimension/2 - 2.5)
+            x, y = (self.move_path[0][0] * settings.cell_dimension + settings.cell_dimension / 2
+                        , self.move_path[0][1] * settings.cell_dimension + settings.cell_dimension / 2 - 2.5)
 
             if utilityfuncs.point_distance(self.x, self.y, x, y) > 5:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, x, y)
                 if self.focused:
-                    self.sprite.set_image_index(int(dir_/45))
+                    self.sprite.set_image_index(int(dir_ / 45))
                 self.x += math.cos(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier
                 self.y -= math.sin(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier
             else:
-                m[self.move_path[0][1]][self.move_path[0][0]] = 0
                 self.move_path.pop(0)
 
             self.leg_sprite.run_sprite()
-            self.leg_sprite.set_image_speed(4/30)
+            self.leg_sprite.set_image_speed(4 / 30)
             if self.leg_sprite.image_index > 2:
                 self.leg_sprite.image_index = 0
 
-        # self.hp = 10000
+
     def render(self, dest:pygame.Surface, x, y, show_stats=False):
         if not self.is_dead:
             # Being used
@@ -438,8 +446,10 @@ class SquadMan:
             side_ways_rect = side_ways.get_rect(center=(x,y))
             dest.blit(side_ways, side_ways_rect)
 
+
     def get_hitbox(self):
         return self.sprite.get_current_image().get_rect(center=(self.x, self.y))
+
 
     def take_damage(self, amount, source=None):
         self.hp -= amount
@@ -458,18 +468,22 @@ class SquadMan:
             vec_y = math.sin(math.radians(source_dir+_rd)) * r
             effects.BloodSplot(self.x + vec_x, self.y - vec_y)
 
+
     def cooldown_ratio(self):
         r = self.cooldown / self.get_weapon().fire_cooldown
         return r
 
+
     def health_ratio(self):
         return self.hp / self.max_hp
+
 
     def check_death(self):
         if self.hp < 0:
             self.is_dead = True
             self.being_used = False
             # self.destroy()
+
 
     def destroy(self):
         deletor.Deleter.request_delete(self, SquadMan.squad_list)
@@ -480,29 +494,38 @@ class SquadMan:
     def switch_sprites(self):
         switch_sprite(self)
 
+
     def firing(self, direction):
         if self.being_used:
             if pygame.key.get_pressed()[pygame.K_e] or pygame.mouse.get_pressed()[2]:
                 fire_gun(self, direction)
 
+
     def knockback(self, strength, knock_dir):
         self.knock_back_dir = knock_dir
         self.knock_back_strength = strength
 
+
     def get_weapon(self):
         return self.current_weapon
+
 
     def get_weapon_name(self):
         return self.current_weapon_name
 
+
     def __lt__(self, other):
         return self.y < other.y
+
 
     def __gt__(self, other):
         return self.y > other.y
 
+
     def __eq__(self, other):
         return self.y == other.y
+
+
 
 def move_squad(x, y, m):
     sq_ls = SquadMan.squad_list
@@ -517,57 +540,98 @@ def move_squad(x, y, m):
             dx, dy = x + math.cos(math.radians(d)) * dist_travel, y - math.sin(math.radians(d)) * dist_travel
             tx = int(dx/settings.cell_dimension)
             ty = int(dy/settings.cell_dimension)
-            if 0 <= ty < map_height and 0 <= tx < map_width:
+            dist_from_squad_member = utilityfuncs.point_distance(sq_m.x, sq_m.y, dx, dy)
+            if dist_from_squad_member < 200 and 0 <= ty < map_height and 0 <= tx < map_width:
                 if m[ty][tx] == 0:
                     sq_m.set_dest(dx, dy, m)
                     sq_m.focused = True
             d +=  360 / num_active
 
 # Default enemies are mobsters, so health will be a little lower
-class EnemyMobster:
-    def __init__(self, loc:tuple[float, float], exclude=False, weapon_type="Pistol"):
+class Enemy:
+    def __init__(self, loc:tuple[float, float], max_hp, exclude=False):
         self.x, self.y = loc
-        self.max_hp = 50
-        self.hp = self.max_hp
-        self.dest_x = self.x
-        self.dest_y = self.y
+        self.dest_x, self.dest_y = self.x, self.y
         self.state = "IDLE"
-
-        self.variable_space:list = [0] * 15 # 15 slots for different variables
-
-        self.state_collection = {
-            "IDLE",
-            "HASTE_AMBUSH",
-            "WAIT_AMBUSH",
-            "SEARCH",
-        }
-
+        self.exclude = exclude
+        self.max_hp = max_hp
+        self.hp = max_hp
+        self.is_dead = False
+        self.repr_name = ""
+        # The sound heard by the enemy
+        self.sound_heard: entities.SoundSource | None = None
         self.references = []
+        if not exclude:
+            enemy_list.append(self)
 
-        self.inaccuracy_multiplier = 1
-        self.surprise_factor = 90
 
-        all_sprs = gen_mobster_sprites()
+    # Standard
+    def action(self):
+        pass
 
-        self.pistol_sprite = all_sprs["Pistol"]
-        self.revolver_sprite = all_sprs["Revolver"]
-        self.shotgun_sprite = all_sprs["Shotgun"]
-        self.thompson_sprite = all_sprs["Thompson"]
-        self.bar_sprite = all_sprs["Bar"]
-        self.grenade_sprite = all_sprs["GrenadeLauncher"]
-        self.rocket_sprite = all_sprs["RocketLauncher"]
+
+    def hear_sound(self, snd:entities.SoundSource):
+        dist = utilityfuncs.point_distance(self.x, self.y, snd.x, snd.y)
+        if dist < snd.radius:
+            if snd.sound_tag == "GUNSHOT":
+                self.sound_heard = snd
+            elif snd.sound_tag == "ENEMY_DEATH":
+                self.sound_heard = snd
+
+
+    def render(self, dest:pygame.Surface, x, y):
+        pass
+
+    def destroy(self):
+        entities.SoundSource(self.x, self.y,  150, sound_tag="ENEMY_DEATH")
+        for l in self.references:
+            deletor.Deleter.request_delete(self, l)
+        deletor.Deleter.request_delete(self, enemy_list)
+
+
+    def check_death(self):
+        if self.hp <= 0:
+            self.destroy()
+
+    # Recommended to override
+    def __copy__(self):
+        return Enemy((self.x, self.y), self.max_hp, exclude=False)
+
+    def __repr__(self):
+        return f"{self.repr_name}->({self.x}, {self.y})"
+
+    # Standard
+    def __lt__(self, other):
+        return self.y < other.y
+
+    def __gt__(self, other):
+        return self.y > other.y
+
+    def __eq__(self, other):
+        return self.y == other.y
+
+class EnemyMobster(Enemy):
+    def __init__(self, loc:tuple[float, float], exclude=False, weapon_type="Pistol"):
+        super().__init__(loc, 50, exclude)
+
+        all_sprites = gen_mobster_sprites()
+        self.pistol_sprite = all_sprites["Pistol"]
+        self.revolver_sprite = all_sprites["Revolver"]
+        self.shotgun_sprite = all_sprites["Shotgun"]
+        self.thompson_sprite = all_sprites["Thompson"]
+        self.bar_sprite = all_sprites["Bar"]
+        self.grenade_sprite = all_sprites["GrenadeLauncher"]
+        self.rocket_sprite = all_sprites["RocketLauncher"]
         self.sprite = self.thompson_sprite
 
-        self.leg_sprite = all_sprs["LEGS"]
+        self.leg_sprite = all_sprites["LEGS"]
 
         self.alerted_saw_player = 0
 
         self.current_weapon_name = weapon_type
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
-        self.frames = 0
         self.move_path = []
         self.faction_color = (255, 0, 0)
-        self.exclude = exclude
         self.repr_name = ""
 
         self.target_x = 0
@@ -577,18 +641,15 @@ class EnemyMobster:
         self.aim_direction = 0
         self.speed_factor = 1
 
+        self.variable_space:list = [0] * 15 # 15 slots for different variables
+        self.inaccuracy_multiplier = 1
+        self.surprise_factor = 90
+
         self.cooldown = 0
         self.is_firing = False
 
         self.knock_back_dir = 0
         self.knock_back_strength = 0
-
-        self.is_dead = False
-
-        # The sound heard by the enemy
-        self.sound_heard:entities.SoundSource|None = None
-        if not exclude:
-            enemy_list.append(self)
 
     def set_dest(self, x, y, m):
         self.move_path.clear()
@@ -633,12 +694,12 @@ class EnemyMobster:
         alert_num = 2
         for e in enemy_list:
             if (not e.is_dead) and utilityfuncs.point_distance(self.x, self.y, e.x, e.y) < 60 and alert_num > 0:
-                if utilityfuncs.line_of_sight(self.x, self.y, e.x, e.y, MAP_GEOMETRY):
-                    if type(self) is type(e):
+                if utilityfuncs.line_of_sight(self.x, self.y, e.x, e.y, MapData.MAP_GEOMETRY):
+                    if type(self) == type(e):
                         e.target_x = self.target_x
                         e.target_y = self.target_y
                         e.front_direction = utilityfuncs.point_direction(e.x, e.y, e.target_x, e.target_y)
-                        e.set_dest(self.target_x, self.target_y, MAP_GEOMETRY) # This works
+                        e.set_dest(self.target_x, self.target_y, MapData.MAP_GEOMETRY) # This works
                         print("Alerted others")
                         alert_num -= 1
 
@@ -650,9 +711,10 @@ class EnemyMobster:
                 self.state = "DECISION"
                 self.clear_variable_space()
 
-            if self.seeing_enemy(SquadMan.squad_list, MAP_GEOMETRY):
+            if self.seeing_enemy(SquadMan.squad_list, MapData.MAP_GEOMETRY):
                 self.state = "ATTACK"
-                self.move_path.clear()
+                # self.move_path.clear()
+                self.stop_moving()
                 self.cooldown = -10
                 self.clear_variable_space()
                 self.alerted_saw_player = 5
@@ -670,12 +732,12 @@ class EnemyMobster:
                 # if utilityfuncs.point_distance(self.x, self.y, self.sound_heard.x, self.sound_heard) > 90:
                 __x = int(self.sound_heard.x/settings.cell_dimension)
                 __y = int(self.sound_heard.y/settings.cell_dimension)
-                if MAP_GEOMETRY[__y][__x] == 0:
-                    self.set_dest(self.sound_heard.x, self.sound_heard.y, MAP_GEOMETRY)
+                if MapData.MAP_GEOMETRY[__y][__x] == 0:
+                    self.set_dest(self.sound_heard.x, self.sound_heard.y, MapData.MAP_GEOMETRY)
                     self.clear_variable_space()
                     self.sound_heard = None
                     self.state = "MOVE_TO_WHERE_LAST_SEEN_ENEMY"
-                    self.set_speed_factor(3)
+                    self.set_speed_factor(random.random()*1 + 2)
 
         elif self.state == "MOVE_TO_WHERE_LAST_SEEN_ENEMY":
             # Using space 1 of variable space to hold cooldown
@@ -698,15 +760,16 @@ class EnemyMobster:
                         self.variable_space[2] += 20
                         __search_range = 20
                         self.look_around(45)
-                        self.move_forward_a_little(MAP_GEOMETRY, __search_range)
+                        self.move_forward_a_little(MapData.MAP_GEOMETRY, __search_range)
                         self.variable_space[1] = 0
 
             # Seeing player then destroy them
-            if self.seeing_enemy(SquadMan.squad_list, MAP_GEOMETRY):
+            if self.seeing_enemy(SquadMan.squad_list, MapData.MAP_GEOMETRY):
                 self.state = "ATTACK"
                 self.alerted_saw_player = 5
                 # self.inaccuracy_multiplier = self.surprise_factor
-                self.move_path.clear()
+                # self.move_path.clear()
+                self.stop_moving()
                 self.cooldown = 0 # Already expected the enemy
                 self.clear_variable_space()
                 self.alert_others()
@@ -715,7 +778,7 @@ class EnemyMobster:
             # Move around a little
             self.inaccuracy_multiplier = max(self.inaccuracy_multiplier * 0.9, 1)
             __d = self.aim_direction# # utilityfuncs.point_direction(self.x, self.y, self.target_x, self.target_y) #
-            if self.seeing_enemy(SquadMan.squad_list, MAP_GEOMETRY):
+            if self.seeing_enemy(SquadMan.squad_list, MapData.MAP_GEOMETRY):
                 self.sprite.set_image_index(int(__d / 45))
                 dist_to_target = utilityfuncs.point_distance(self.x, self.y, self.target_x, self.target_y)
                 can_fire = True
@@ -728,12 +791,11 @@ class EnemyMobster:
                 self.is_firing = False
                 self.state = "MOVE_TO_WHERE_LAST_SEEN_ENEMY" # when going to where enemy is last seen, do not have an empty move path
                 self.clear_variable_space()
-                self.set_dest(self.target_x, self.target_y, MAP_GEOMETRY)
+                self.set_dest(self.target_x, self.target_y, MapData.MAP_GEOMETRY)
                 self.set_speed_factor(1)
                 self.sound_heard = None
 
-        # elif self.state == "WAIT_AMBUSH":
-        self.movement(MAP_GEOMETRY)
+        self.movement()
         if self.alerted_saw_player > 0:
             self.alerted_saw_player = max(self.alerted_saw_player - 0.1, 0)
 
@@ -776,7 +838,7 @@ class EnemyMobster:
         return self.current_weapon_name
 
     ## Pathfinding wing
-    def movement(self, m:list[list[int]]):
+    def movement(self):
         if len(self.move_path) == 0:
             if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 5:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, self.dest_x, self.dest_y)
@@ -799,7 +861,6 @@ class EnemyMobster:
                 self.x += math.cos(math.radians(dir_)) * 0.5 * self.speed_factor
                 self.y -= math.sin(math.radians(dir_)) * 0.5 * self.speed_factor
             else:
-                m[self.move_path[0][1]][self.move_path[0][0]] = 0
                 self.move_path.pop(0)
 
             self.leg_sprite.run_sprite()
@@ -828,7 +889,7 @@ class EnemyMobster:
 
         # Alerted
         if self.alerted_saw_player > 0:
-            alr_spr = pygame.transform.scale_by(ALL_SPRITES.ASP["ALERTED0"], 0.5)
+            alr_spr = pygame.transform.scale_by(ALL_SPRITES.ASP["ALERTED0"], 0.25)
             fluctuate = random.randint(0, 100)
             if fluctuate <= 50:
                 alr_spr = ALL_SPRITES.ASP["ALERTED1"]
@@ -859,15 +920,6 @@ class EnemyMobster:
         self.knock_back_dir = knock_dir
         self.knock_back_strength = strength
 
-    def check_death(self):
-        if self.hp <= 0:
-            self.destroy()
-
-    def destroy(self):
-        entities.SoundSource(self.x, self.y,  150, sound_tag="ENEMY_DEATH")
-        for l in self.references:
-            deletor.Deleter.request_delete(self, l)
-        deletor.Deleter.request_delete(self, enemy_list)
 
     def __copy__(self):
         return EnemyMobster((self.x, self.y), exclude=False, weapon_type=self.current_weapon_name)
@@ -875,14 +927,422 @@ class EnemyMobster:
     def __repr__(self):
         return f"{self.repr_name}->({self.x}, {self.y})"
 
-    def __lt__(self, other):
-        return self.y < other.y
+# Make the enemies' reaction speeds scale to the danger of the situation.
+class EnemySoldier(Enemy):
+    def __init__(self, loc:tuple[float, float], exclude=False, weapon_type="Pistol"):
+        super().__init__(loc, 100, exclude)
 
-    def __gt__(self, other):
-        return self.y > other.y
+        all_sprites = gen_soldier_sprites()
+        self.pistol_sprite = all_sprites["Pistol"]
+        self.revolver_sprite = all_sprites["Revolver"]
+        self.shotgun_sprite = all_sprites["Shotgun"]
+        self.thompson_sprite = all_sprites["Thompson"]
+        self.bar_sprite = all_sprites["Bar"]
+        self.grenade_sprite = all_sprites["GrenadeLauncher"]
+        self.rocket_sprite = all_sprites["RocketLauncher"]
+        self.sprite = self.thompson_sprite
 
-    def __eq__(self, other):
-        return self.y == other.y
+        self.leg_sprite = all_sprites["LEGS"]
+
+        self.deaths_heard = 0
+
+        self.alerted_saw_player = 0
+
+        self.current_weapon_name = weapon_type
+        self.current_weapon = WEAPONS_REF[self.current_weapon_name]
+        self.move_path = []
+        self.past_path = []
+        self.faction_color = (255, 0, 0)
+        self.repr_name = ""
+
+        self.target_x = 0
+        self.target_y = 0
+        self.initial_x, self.initial_y = self.x, self.y # Initial positions
+        self.target_obj : SquadMan|None = None
+
+        self.front_direction = random.random() * 360
+        self.aim_direction = 0
+        self.speed_factor = 1
+        self.is_stopping = False
+
+        self.variable_space:list = [0] * 15 # 15 slots for different variables
+        self.inaccuracy_multiplier = 1
+        self.surprise_factor = 90
+
+        self.cooldown = 0
+        self.is_firing = False
+
+        self.knock_back_dir = 0
+        self.knock_back_strength = 0
+
+        self.pain_amount = 0
+
+    def set_dest(self, x, y, m):
+        self.move_path.clear()
+        self.past_path.clear()
+        self.dest_x, self.dest_y = x, y
+        def conv(val):
+            return int(val/settings.cell_dimension)
+        self.move_path = pathfind.pathfind(conv(self.x), conv(self.y), conv(self.dest_x), conv(self.dest_y), m)
+
+    def xy(self):
+        return self.x, self.y
+
+    def switch_state(self):
+        self.variable_space.clear()
+
+    def seeing_enemy(self, enemies:list, m:list[list[int]]):
+        fov = 200
+        for e in enemies:
+            if (not e.is_dead) and utilityfuncs.line_of_sight(self.x, self.y, e.xy()[0], e.xy()[1], m):
+                self.target_x = e.xy()[0]
+                self.target_y = e.xy()[1]
+                self.target_obj = e
+                direction_to_enemy = utilityfuncs.point_direction(self.x, self.y, e.x, e.y)
+                if abs(direction_to_enemy - self.front_direction) < fov/2:
+                    self.front_direction = direction_to_enemy # Some extra things
+                    return True
+        return False
+
+    def enemy_seen(self, enemies:list, m:list[list[int]]):
+        for e in enemies:
+            if (not e.is_dead) and utilityfuncs.line_of_sight(self.x, self.y, e.xy()[0], e.xy()[1], m):
+                return e
+        return None
+
+    def clear_variable_space(self):
+        for i in range(len(self.variable_space)):
+            self.variable_space[i] = 0
+
+    def stop_moving(self):
+        self.dest_x, self.dest_y = self.x, self.y
+        self.move_path.clear()
+        self.past_path.clear()
+
+    def alert_others(self):
+        alert_num = 2
+        for e in enemy_list:
+            enemy_not_alerted_already = e.target_obj is None
+            enemy_not_making_a_move_already = len(e.move_path) == 0
+            enemy_not_dead = not e.is_dead
+            can_call_enemy = utilityfuncs.point_distance(self.x, self.y, e.x, e.y) < 60
+            maximum_enemies_alerted = alert_num > 0
+            if enemy_not_alerted_already and enemy_not_dead and can_call_enemy and maximum_enemies_alerted \
+                    and enemy_not_making_a_move_already:
+                if utilityfuncs.line_of_sight(self.x, self.y, e.x, e.y, MapData.MAP_GEOMETRY):
+                    if type(self) == type(e):
+                        e.target_x = self.target_x
+                        e.target_y = self.target_y
+                        e.front_direction = utilityfuncs.point_direction(e.x, e.y, e.target_x, e.target_y)
+                        e.set_dest(self.target_x, self.target_y, MapData.MAP_GEOMETRY) # This works
+                        print("Alerted others")
+                        alert_num -= 1
+
+    def action(self):
+        self.aim_direction = pygame.math.lerp(self.aim_direction, self.front_direction, 0.1)
+        __d = int(self.aim_direction/45)
+        self.switch_sprites()
+        self.sprite.set_image_index(__d)
+        if self.hp < self.max_hp/2:
+            self.hp = min(self.hp + 0.2 * (1 - (self.pain_amount / 200)), self.max_hp)
+        self.pain_amount = min(max(self.pain_amount - 0.1, 0), 200)
+        self.alerted_saw_player = max(self.alerted_saw_player - 0.1, 0)
+
+        # ALL THE FUNCTIONS AND TOOLS AT YOUR DISPOSAL
+        # self.state                - state of the player
+        # self.move_path            - movement path
+        # self.seeing_enemy()       - sets the target coordinates of the player if seen
+        # self.sound_heard          - any sound that is heard will be set to something not None
+        # self.alert_otherS()       - alerting other soldiers of the type
+        # self.variable_space       - any temporary variables that are persistent and needs storage will be put here.
+        # self.clear_variable_space - turning all variable spaces to 0
+        # self.look_around          - wondering.
+        # self.cooldown             - cooldown of the
+        # self.set_speed_factor     - sets the factor that the speed will be multiplied by
+        # self.set_dest             - setting the destination for where the enemy object will be headed
+        #
+        # STATES:
+        # "IDLE" - the starting state for everything
+        #
+        # CONVENTIONS:
+        # if self.sound_heard is not None: -> if there is a sound.
+
+        if self.state == "IDLE":
+            if self.sound_heard is not None: # Heard a sound
+                # Clearing the variable space, just in case
+                self.clear_variable_space()
+                sound = self.sound_heard
+                # Move to Sound
+                self.front_direction = utilityfuncs.point_direction(self.x, self.y, sound.x + random.randrange(-16, 16), sound.y + random.randrange(-16, 16))
+                self.set_dest(sound.x, sound.y, MapData.MAP_GEOMETRY)
+                self.set_speed_factor(1.5)
+                self.state = "SCOUT_OUT0"
+                self.sound_heard = None
+
+        elif self.state == "SCOUT_OUT0": # Stop for a second
+            # Assuming a destination has been set
+            self.is_stopping = True
+            if self.variable_space[0] > 30:
+                self.clear_variable_space()
+                self.state = "SCOUT_OUT1"
+            else:
+                self.variable_space[0] += 1
+
+        elif self.state == "SCOUT_OUT1":
+            # Going towards the destination, stopping if around the corner is the sound source
+            # Use variable space as transition between states
+            if self.variable_space[0] == 0:
+                self.is_stopping = False
+                if len(self.move_path) > 0:
+                    check_index = 0
+                    if len(self.move_path) > 1:
+                        check_index = 1
+                    vertex = self.move_path[check_index]
+                    vertex_x = vertex[0] * settings.cell_dimension + settings.cell_dimension / 2
+                    vertex_y = vertex[1] * settings.cell_dimension + settings.cell_dimension / 2
+                    if utilityfuncs.line_of_sight(self.dest_x, self.dest_y, vertex_x, vertex_y, MapData.MAP_GEOMETRY):
+                        self.variable_space[0] = 15
+            else:
+                self.is_stopping = True
+                if self.variable_space[1] < 2 * 60:
+                    self.variable_space[1] += 1
+                else:
+                    self.clear_variable_space()
+                    self.state = "SCOUT_OUT2"
+
+        elif self.state == "SCOUT_OUT2":
+            self.is_stopping = False
+            # Run outside to see if there's an enemy
+            if self.variable_space[0] == 0:
+                # Waiting around the corner, and run out to see if there's an enemy.
+                # See the spot. If there's an enemy, attack. Else, go to the spot.
+                if not utilityfuncs.line_of_sight(self.x, self.y, self.dest_x, self.dest_y, MapData.MAP_GEOMETRY):
+                    self.set_speed_factor(2)
+                else:
+                    if self.variable_space[1] > 60:
+                        self.is_stopping = False
+                        self.set_speed_factor(2)
+                        self.variable_space[0] = 15
+                    else:
+                        self.variable_space[1] += 1
+                        self.is_stopping = True
+            else:
+                # Go to the path after doing stuff. If there is a destination.
+                if self.variable_space[2] > 3 * 60:
+                    self.is_stopping = False
+                    if len(self.move_path) == 0:
+                        self.clear_variable_space()
+                        self.state = "IDLE"
+                else:
+                    self.variable_space[2] += 1
+        elif self.state == "MOVE_TO_WHERE_LAST_SEEN_ENEMY":
+            if self.target_obj is not None:
+                self.is_stopping = False
+                # Try and predict the position of the enemy where they'd last been seen (getting their path information)
+                if self.variable_space[0] == 0:
+                    if len(self.target_obj.move_path) > 0:
+                        e_move_path = self.target_obj.move_path
+                        cutoff_vertex = e_move_path[int(len(e_move_path)//1.8)]
+                        self.set_dest(cutoff_vertex[0] * settings.cell_dimension + settings.cell_dimension//2,
+                                      cutoff_vertex[1] * settings.cell_dimension + settings.cell_dimension//2,
+                                      MapData.MAP_GEOMETRY)
+                    else:
+                        self.set_dest(self.target_x, self.target_y, MapData.MAP_GEOMETRY)
+                    self.variable_space[0] = 15
+                    self.set_speed_factor(2)
+                else:
+                    # If at the end of the road, not finding anything, look around.
+                    # IF haven't found anyone, then lost track of enemy
+                    if len(self.move_path) == 0:
+                        if self.variable_space[1] < 4 * 60:
+                            self.variable_space[1] += 1
+                            self.set_speed_factor(1)
+                        else:
+                            self.target_obj = None
+                            self.state = "IDLE"
+                            self.clear_variable_space()
+            else:
+                if self.variable_space[2] > 6 * 60:
+                    self.target_obj = None
+                    self.state = "IDLE"
+                    self.clear_variable_space()
+                else:
+                    self.variable_space[2] += 1
+                    if len(self.move_path) == 0:
+                        self.move_forward_a_little(MapData.MAP_GEOMETRY, 20)
+                        self.look_around(45)
+
+        elif self.state == "ATTACK":
+            # self.stop_moving()
+            # Move around a little
+            self.inaccuracy_multiplier = max(self.inaccuracy_multiplier * 0.9, 1)
+            __d = self.aim_direction
+            if self.seeing_enemy(SquadMan.squad_list, MapData.MAP_GEOMETRY):
+                self.sprite.set_image_index(int(__d / 45))
+                self.firing(__d + random.randrange(-1, 1)) #* self.inaccuracy_multiplier)
+                self.stop_moving()
+            else:
+                self.is_firing = False
+                self.state = "MOVE_TO_WHERE_LAST_SEEN_ENEMY" # when going to where enemy is last seen, do not have an empty move path
+                self.clear_variable_space()
+                self.set_speed_factor(1)
+                self.sound_heard = None
+
+        # Any sounds heard, report back to IDLE
+        if self.seeing_enemy(SquadMan.squad_list, MapData.MAP_GEOMETRY):
+            self.state = "ATTACK"
+            self.clear_variable_space()
+            self.alert_others()
+
+        if self.sound_heard is not None:
+            if self.sound_heard.sound_tag == "ENEMY_DEATH":
+                if self.deaths_heard == 1:
+                    if self.state in "SCOUT_OUT0 SCOUT_OUT1 SCOUT_OUT2":
+                        self.move_path = self.past_path[:] # Retreating
+                        self.past_path.clear()
+                        self.deaths_heard = 0
+                        self.state = "IDLE"
+                self.state = "IDLE"
+                self.deaths_heard += 1
+            else:
+                if self.state != "ATTACK": # So that enemies do not automatically retreat back into non-combat state
+                    if len(self.move_path) == 0:
+                        self.state = "IDLE"
+
+        if not self.is_stopping:
+            self.movement()
+        if self.alerted_saw_player > 0:
+            self.alerted_saw_player = max(self.alerted_saw_player - 0.1, 0)
+
+    def look_around(self, _range):
+        self.front_direction += random.choice([-_range, _range])
+        self.front_direction = max(min(self.front_direction, 360), 0)
+        if self.front_direction >= 360:
+            self.front_direction = 0
+
+    def move_forward_a_little(self, m:list[list[int]], search_range=16):
+        __x = self.x + math.cos(math.radians(self.front_direction)) * search_range
+        __y = self.y - math.sin(math.radians(self.front_direction)) * search_range
+        self.set_speed_factor(1)
+        if m[int(__y / settings.cell_dimension)][int(__x / settings.cell_dimension)] != 0:
+            return False
+        else:
+            self.set_dest(__x, __y, m)
+            return True
+
+    def set_speed_factor(self, spd:float):
+        self.speed_factor = spd
+
+    def firing(self, direction):
+        fire_gun(self, direction)
+
+    def hear_sound(self, snd:entities.SoundSource):
+        # chance = random.randint(0, 100)
+        # if chance < 33:
+        dist = utilityfuncs.point_distance(self.x, self.y, snd.x, snd.y)
+        if dist < snd.radius:
+            if snd.sound_tag == "GUNSHOT":
+                self.sound_heard = snd
+            elif snd.sound_tag == "ENEMY_DEATH":
+                self.sound_heard  = snd
+
+    def get_weapon(self):
+        return self.current_weapon
+
+    def get_weapon_name(self):
+        return self.current_weapon_name
+
+    ## Pathfinding wing
+    def movement(self):
+        if len(self.move_path) == 0:
+            if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 5:
+                dir_ = utilityfuncs.point_direction(self.x, self.y, self.dest_x, self.dest_y)
+                self.front_direction = dir_
+                self.x += math.cos(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * 0.8
+                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * 0.8
+            else:
+                self.dest_x, self.dest_y = self.x, self.y
+                self.leg_sprite.set_image_index(2)
+                self.leg_sprite.set_image_speed(0)
+        else:
+            x, y = (self.move_path[0][0] * settings.cell_dimension + settings.cell_dimension/2
+                        , self.move_path[0][1] * settings.cell_dimension + settings.cell_dimension/2 - 2.5)
+
+            if utilityfuncs.point_distance(self.x, self.y, x, y) > 5:
+                dir_ = utilityfuncs.point_direction(self.x, self.y, x, y)
+                self.front_direction = dir_
+                if not self.is_firing:
+                    self.sprite.set_image_index(dir_//45)
+                self.x += math.cos(math.radians(dir_)) * 0.5 * self.speed_factor
+                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.speed_factor
+            else:
+                self.past_path.insert(0, self.move_path[0])
+                self.move_path.pop(0)
+
+            self.leg_sprite.run_sprite()
+            self.leg_sprite.set_image_speed(4/30)
+            if self.leg_sprite.image_index > 2:
+                self.leg_sprite.image_index = 0
+
+
+    def set_xy(self, loc:tuple[float, float]):
+        self.x, self.y = loc
+        self.dest_x, self.dest_y = loc
+
+    def switch_sprites(self):
+        switch_sprite(self)
+
+    def render(self, dest:pygame.Surface, x, y):
+        vec_x = math.cos(math.radians(self.knock_back_dir)) * self.knock_back_strength
+        vec_y = math.sin(math.radians(self.knock_back_dir)) * self.knock_back_strength
+        x += vec_x
+        y -= vec_y
+        self.switch_sprites()
+        dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)), None)
+        dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
+        pygame.draw.rect(dest, (255, 0, 0), (x-5, y-9, 10, 2))
+        pygame.draw.rect(dest, (0, 255, 0), (x-5, y-9, 10*self.hp/self.max_hp, 2))
+
+        # Alerted
+        if self.alerted_saw_player > 0:
+            alr_spr = pygame.transform.scale_by(ALL_SPRITES.ASP["ALERTED0"], 0.25)
+            fluctuate = random.randint(0, 100)
+            if fluctuate <= 50:
+                alr_spr = ALL_SPRITES.ASP["ALERTED1"]
+            alr_rect = alr_spr.get_rect(center=(x, y-8))
+            dest.blit(alr_spr, alr_rect)
+
+    def get_hitbox(self):
+        return self.sprite.get_current_image().get_rect(center=(self.x, self.y))
+
+    def take_damage(self, amount, source):
+        source_dir = random.random() * 360
+        if source_dir is not None:
+            source_dir = utilityfuncs.point_direction(self.x, self.y, source.x, source.y)
+        damage_multiplier = (abs(self.front_direction - source_dir) / 180) * 1.25 + 1
+        self.hp -= amount * damage_multiplier
+        self.front_direction = source_dir
+        self.pain_amount += amount/2
+        # self.inaccuracy_multiplier = (self.surprise_factor/3) * damage_multiplier
+
+        num_splots = int(1 + amount / 20)
+        for i in range(num_splots):
+            r = random.randrange(6, 23) + 2 * (amount / 32)
+            _rd = random.randrange(-11, 11)
+            vec_x = math.cos(math.radians(source_dir+_rd+180)) * r
+            vec_y = math.sin(math.radians(source_dir+_rd+180)) * r
+            effects.BloodSplot(self.x + vec_x, self.y - vec_y)
+
+    def knockback(self, strength, knock_dir):
+        self.knock_back_dir = knock_dir
+        self.knock_back_strength = strength
+
+
+    def __copy__(self):
+        return EnemySoldier((self.x, self.y), exclude=False, weapon_type=self.current_weapon_name)
+
+    def __repr__(self):
+        return f"{self.repr_name}->({self.x}, {self.y})"
 
 all_enemies_type = EnemyMobster
 
@@ -891,10 +1351,19 @@ def enemies_generator(): # CAN ONLY BE USED IF A VIDEO MODE HAS BEEN SET
     if pygame.display.get_init():
         misc_objs_dict = {
             "EnemyMobsterPistol": EnemyMobster((0, 0), weapon_type="Pistol", exclude=True),
+            "EnemyMobsterRevolver": EnemyMobster((0, 0), weapon_type="Revolver", exclude=True),
             "EnemyMobsterShotgun": EnemyMobster((0, 0), weapon_type="Shotgun", exclude=True),
             "EnemyMobsterThompson": EnemyMobster((0, 0), weapon_type="Thompson", exclude=True),
             "EnemyMobsterBar": EnemyMobster((0, 0), weapon_type="Bar", exclude=True),
-            "EnemyMobsterRocketLauncher" : EnemyMobster((0, 0), weapon_type="RocketLauncher", exclude=True)
+            "EnemyMobsterRocketLauncher" : EnemyMobster((0, 0), weapon_type="RocketLauncher", exclude=True),
+            "EnemyMobsterGrenadeLauncher" : EnemyMobster((0, 0), weapon_type="GrenadeLauncher", exclude=True),
+            "EnemySoldierPistol" : EnemySoldier((0, 0), weapon_type="Pistol", exclude=True),
+            "EnemySoldierShotgun": EnemySoldier((0, 0), weapon_type="Shotgun", exclude=True),
+            "EnemySoldierThompson": EnemySoldier((0, 0), weapon_type="Thompson", exclude=True),
+            "EnemySoldierRevolver": EnemySoldier((0, 0), weapon_type="Revolver", exclude=True),
+            "EnemySoldierBar": EnemySoldier((0, 0), weapon_type="Bar", exclude=True),
+            "EnemySoldierRocketLauncher": EnemySoldier((0, 0), weapon_type="RocketLauncher", exclude=True),
+            "EnemySoldierGrenadeLauncher": EnemySoldier((0, 0), weapon_type="GrenadeLauncher", exclude=True),
         }
         return misc_objs_dict
     return AssertionError("PYGAME DISPLAY WAS NOT INITIALIZED")

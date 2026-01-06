@@ -81,18 +81,19 @@ class BloodSplot:
         return rect
 
 class Ray:
-    def __init__(self, x_start, y_start, x_end, y_end, color=(255,255,255)):
-        self.x = x_start
-        self.y = y_start
-        self.x_end   = x_end
-        self.y_end   = y_end
-        self.color = color
+    def __init__(self, x_start, y_start, x_end, y_end, ray_width=2, color=(255,255,255)):
+        self.x          = x_start
+        self.y          = y_start
+        self.x_end      = x_end
+        self.y_end      = y_end
+        self.color      = color
+        self.ray_width  = ray_width
         all_effects.append(self)
         self.references = []
     def render(self, dest:pygame.Surface, x,y):
         dx = self.x_end - self.x
         dy = self.y_end - self.y
-        pygame.draw.line(dest, self.color, (x, y), (x+dx, y+dy), width=2)
+        pygame.draw.line(dest, self.color, (x, y), (x+dx, y+dy), width=self.ray_width)
         self.destroy()
     def destroy(self):
         deletor.Deleter.request_delete(self, all_effects)

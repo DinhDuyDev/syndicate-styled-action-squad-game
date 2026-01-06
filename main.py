@@ -1,4 +1,5 @@
 # Importing all the library in
+import math
 import weakref
 import psutil
 import pygame
@@ -16,6 +17,7 @@ import effects
 import deletor
 import entities
 import ALL_SPRITES
+import queue
 
 ###########################
 # Initializing everything #
@@ -55,11 +57,14 @@ man2 = p.SquadMan((-1000, -1000))
 man3 = p.SquadMan((-1000, -1000))
 man4 = p.SquadMan((-1000, -1000))
 
+
 ##########
 # Camera #
 ##########
 gameCamera = camera.Camera()
-
+# man2.take_damage(1000)
+# man3.take_damage(1000)
+# man4.take_damage(1000)
 #######
 # Map #
 #######
@@ -88,7 +93,7 @@ def load_level(index: int):
         settings.ver_cells)] if new_map else map.GameMap.get_map().get_level_matrix()
 
     # COMPOSITION
-    player_enemies.MAP_GEOMETRY = LoadedScene.loaded_map
+    player_enemies.MapData.MAP_GEOMETRY = LoadedScene.loaded_map
     entities.MAP_GEOMETRY = LoadedScene.loaded_map
 
     # Loading current map data, like misc (decorations) objects
@@ -144,6 +149,7 @@ class user_input:
     key_pressed = False
 
 def debug_information():
+    offset = 4
     curr_fps = clock.get_fps()
     pygame.draw.rect(draw_dest, (255, 0, 0), (0, 0, 32, 4))
     pygame.draw.rect(draw_dest, (0, 255, 0), (0, 0, 32 * (clock.get_fps() / 60), 4))
@@ -156,16 +162,19 @@ def debug_information():
     if curr_fps < Performance.MIN_FPS:
         Performance.MIN_FPS = curr_fps
 
-    max_fps = font.render(f"max fps: {Performance.MAX_FPS}", False, (255, 255, 255))
-    min_fps = font.render(f"min fps: {Performance.MIN_FPS}", False, (255, 255, 255))
-    max_rect = max_fps.get_rect(topleft=(0, 8))
-    min_rect = min_fps.get_rect(topleft=(0, 16))
+    max_fps = font.render(f"max fps: {str(Performance.MAX_FPS)[:5]}", False, (255, 255, 255))
+    cur_fps = font.render(f"cur fps: {str(curr_fps)[:5]}", False, (255, 255, 255))
+    min_fps = font.render(f"min fps: {str(Performance.MIN_FPS)[:5]}", False, (255, 255, 255))
+    max_rect = max_fps.get_rect(topleft=(0, 8+offset))
+    cur_rect = cur_fps.get_rect(topleft=(0, 16+offset))
+    min_rect = min_fps.get_rect(topleft=(0, 24+offset))
     draw_dest.blit(max_fps, max_rect)
+    draw_dest.blit(cur_fps, cur_rect)
     draw_dest.blit(min_fps, min_rect)
 
     # MEMORY:
-    memory_amount = font.render(f"{psutil.Process().memory_info().rss / 1024 ** 2}", False, (255, 255, 255))
-    memory_rect = memory_amount.get_rect(topleft=(0, 0))
+    memory_amount = font.render(f"{str(psutil.Process().memory_info().rss / 1024 ** 2)[:6]}", False, (255, 255, 255))
+    memory_rect = memory_amount.get_rect(topleft=(0, offset))
     draw_dest.blit(memory_amount, memory_rect)
 
 def squad_information_ui():
@@ -252,7 +261,7 @@ def game():
         else:
             # 640x360 screen
             # 1/4 of the screen
-            if not pygame.key.get_pressed()[pygame.K_TAB]:
+            if pygame.key.get_pressed()[pygame.K_TAB]:
                 UserInterface.squad_ui_used = True
             else:
                 UserInterface.squad_ui_used = False
@@ -407,7 +416,7 @@ def in_level():
             num_rect = num.get_rect(center=(sq.x-_x, sq.y-_y-16))
             draw_dest.blit(num, num_rect)
             md_dir = utilityfuncs.point_direction(sq.x-_x, sq.y-_y, mx, my)
-            sq.action(LoadedScene.loaded_map)
+            sq.action()
             sq.firing(md_dir)
             sq.check_death()
 
@@ -415,9 +424,9 @@ def in_level():
     for e in player_enemies.enemy_list:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
-        # enemy_state = font.render(str(e.state), False, (255, 0, 0))
-        # rect = enemy_state.get_rect(center=(e.x-_x, e.y-_y-16))
-        # draw_dest.blit(enemy_state, rect)
+        enemy_state = ingame_font.render(str(e.state), False, (255, 0, 0))
+        rect = enemy_state.get_rect(center=(e.x-_x, e.y-_y-16))
+        draw_dest.blit(enemy_state, rect)
         e.action()
         e.check_death()
 
@@ -469,11 +478,9 @@ def in_level():
 if __name__ == "__main__":
     game()
 
-LoadedScene.draw_stack.clear()
-print(pygame.display.Info())
+print("======== Video Information ========\n", pygame.display.Info())
 for i in all_enemy_refs:
     print(i)
-print(player_enemies.enemy_list)
 
 print("--------------------------------")
 print("performance report")
