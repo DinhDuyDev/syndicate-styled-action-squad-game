@@ -17,7 +17,7 @@ import effects
 import deletor
 import entities
 import ALL_SPRITES
-import queue
+import SlowMo
 
 ###########################
 # Initializing everything #
@@ -37,6 +37,8 @@ font = pygame.font.SysFont("Arial", 10)
 big_font = pygame.font.SysFont("Courier New", 50, bold=True)
 ingame_font = pygame.font.SysFont("Arial", 7)
 
+ww, wh = settings.WINDOW_WIDTH/settings.zoom, settings.WINDOW_HEIGHT/settings.zoom
+
 class GameVariables:
     running = True
     debug_mode = False
@@ -48,7 +50,12 @@ class Performance:
 
 class UserInterface:
     ui_offset = 0
+    can_show_inventory = False
+    loaded_inventory = False
     squad_ui_used = False
+    index_selected = 0
+    holding_item = False
+
 ##########
 # Player #
 ##########
@@ -65,6 +72,7 @@ gameCamera = camera.Camera()
 # man2.take_damage(1000)
 # man3.take_damage(1000)
 # man4.take_damage(1000)
+
 #######
 # Map #
 #######
@@ -178,17 +186,15 @@ def debug_information():
     draw_dest.blit(memory_amount, memory_rect)
 
 def squad_information_ui():
-    ww, wh = settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT
-    cell_w, cell_h = ww/16, wh/4
-    pygame.draw.rect(draw_dest, (0, 0, 0), (0, 0, ww/8, wh/2))
+    mx, my = utilityfuncs.mouse_xy_transformation(draw_dest, game_screen.screen)
+    cell_w, cell_h = ww / 8, wh / 2
+    pygame.draw.rect(draw_dest, (0, 0, 0), (0, 0, cell_w*2, cell_h*2))
     ind = 0
     for i in range(2):
         for j in range(2):
             ind += 1
             top_left = (j * cell_w, i * cell_h)
             center = (j * cell_w+cell_w/2, i * cell_h + cell_h/2)
-            pygame.draw.rect(draw_dest, (0, 0, 0), (j * cell_w, i * cell_h, cell_w, cell_h), width=2)
-            # pygame.draw.rect(draw_dest, (0, 0, 0), (j * ww / 16+1, i * wh / 4+1, ww / 16, wh / 4), width=1)
 
             # All members are alive.
             sq_member = player_enemies.SquadMan.squad_list[ind - 1]
@@ -246,12 +252,61 @@ def squad_information_ui():
             cooldown_fill_rect = cooldown_fill.get_rect(topleft=(top_left[0]+2, top_left[1]+3-w/2 * (w <= 16) +w-sub_width))
             draw_dest.blit(cooldown_fill, cooldown_fill_rect)
 
+    # Choose for technique -> select using mouse button or mouse wheel who to choose for
+
+    # # Inventory
+    if UserInterface.loaded_inventory:
+        UserInterface.ui_offset = pygame.math.lerp(UserInterface.ui_offset, 0, 0.2)
+    else:
+        UserInterface.ui_offset = pygame.math.lerp(UserInterface.ui_offset, wh+16, 0.2)
+
+    if UserInterface.ui_offset > wh:
+        UserInterface.can_show_inventory = True
+
+    if UserInterface.ui_offset <= wh:
+        inventory_x = cell_w * 2
+        ofs = UserInterface.ui_offset
+        pygame.draw.rect(draw_dest, (25, 25, 25), (inventory_x, ofs, ww-inventory_x, wh))
+
+        # UI Inventory
+        if UserInterface.can_show_inventory:
+            for item in player_enemies.SquadMan.inventory:
+                if item.weapon_name != "None":
+                    item.display_x = item.x + inventory_x
+                    item.render(draw_dest, item.display_x, item.y + ofs)
+                else:
+                    pygame.draw.rect(draw_dest, (0, 0, 0), (inventory_x, ofs, 16, 16))
+
+    # Drawing number
+    if UserInterface.loaded_inventory:
+        # soldier index selected
+        selected_index = ingame_font.render(str(UserInterface.index_selected + 1), False, (0, 255, 0))
+        selected_index_rect = selected_index.get_rect(bottomleft=(mx, my))
+        draw_dest.blit(selected_index, selected_index_rect)
+
+
+# # =====================================================================
 def game():
     while GameVariables.running:
+        # for event in pygame.event.get(): # need this to work
+        #     if event.type == pygame.QUIT:
+        #         GameVariables.running = False
+
+        ###########
+        # EXITING #
+        ###########
+        if pygame.key.get_pressed()[pygame.K_ESCAPE]:
+            GameVariables.running = False
+
+        ##############
+        # BACKGROUND #
+        ##############
+        draw_dest.fill((50, 50, 50))
+
         # Title Screen
-        # Menu / Selection Screen
+        # Menu Selection Screen
         # Option Screen
-        # Audio / Selections Screen
+        # Audio Selections Screen
         # Level
         in_level()
 
@@ -261,20 +316,17 @@ def game():
         else:
             # 640x360 screen
             # 1/4 of the screen
-            if pygame.key.get_pressed()[pygame.K_TAB]:
-                UserInterface.squad_ui_used = True
-            else:
-                UserInterface.squad_ui_used = False
+            squad_information_ui()
 
-            if UserInterface.squad_ui_used:
-                squad_information_ui()
-            else:
-                debug_information()
+        # Anything requesting to be deleted will be deleted here
+        deletor.Deleter.delete_all_requests()
 
         # Resizing Screen
         game_screen.screen.blit(pygame.transform.scale_by(pygame.transform.scale(draw_dest, game_screen.get_dimensions()), settings.zoom), (gameCamera.camera_shake_vector(), gameCamera.camera_shake_vector()))
         pygame.display.flip()
         clock.tick(GameVariables.GAME_FPS)
+
+# =====================================================================
 
 def in_level():
     ####################
@@ -290,10 +342,11 @@ def in_level():
     mx, my = utilityfuncs.mouse_xy_transformation(draw_dest, game_screen.screen)
 
     # UI Interaction
-    can_click = True
+    can_click = True and (not UserInterface.loaded_inventory)
     if UserInterface.squad_ui_used:
         if mx < settings.WINDOW_WIDTH/8:
             can_click = False
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             GameVariables.running = False
@@ -307,24 +360,24 @@ def in_level():
                     for sq in squad_man:
                         sq.being_used = False
             else:
-                # Selecting soldiers individually
-                all_soldiers_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
-                squad_list = player_enemies.SquadMan.squad_list
-
-                for i in range(len(squad_list)):
-                    squad_man = player_enemies.SquadMan.squad_list
-                    if pygame.key.get_pressed()[all_soldiers_keys[i]]:
-                        if pygame.key.get_pressed()[pygame.K_LSHIFT]:
-                            squad_man[i].being_used = not squad_man[i].being_used
-                        else:
-                            squad_man[i].being_used = True
-                            for j in range(len(squad_man)):
-                                if j != i:
-                                    squad_man[j].being_used = False
+                if not UserInterface.loaded_inventory:
+                    # Selecting soldiers individually
+                    all_soldiers_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
+                    squad_list = player_enemies.SquadMan.squad_list
+                    # If UI is opened
+                    for i in range(len(squad_list)):
+                        squad_man = player_enemies.SquadMan.squad_list
+                        if pygame.key.get_pressed()[all_soldiers_keys[i]]:
+                            if pygame.key.get_pressed()[pygame.K_LSHIFT]:
+                                squad_man[i].being_used = not squad_man[i].being_used
+                            else:
+                                squad_man[i].being_used = True
+                                for j in range(len(squad_man)):
+                                    if j != i:
+                                        squad_man[j].being_used = False
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             index = 0
-            ww, wh = settings.WINDOW_WIDTH, settings.WINDOW_HEIGHT
             cell_w, cell_h = ww / 16, wh / 4
             sq_ls = player_enemies.SquadMan.squad_list
             for i in range(2):
@@ -361,15 +414,47 @@ def in_level():
                     print("Traversable")
                     p.move_squad(mx+_x, my+_y, LoadedScene.loaded_map)
 
+    if UserInterface.loaded_inventory:
+        # Clicking on the weapons
+        padding = ww/4
+        all_soldiers_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
+        for key_index in range(len(all_soldiers_keys)):
+            if pygame.key.get_pressed()[all_soldiers_keys[key_index]]:
+                if not player_enemies.SquadMan.squad_list[key_index].is_dead:
+                    UserInterface.index_selected = key_index
+
+        for item in player_enemies.SquadMan.inventory:
+            item_rect = item.hitbox()
+            touching_hitbox = item_rect.collidepoint(mx-padding, my)
+            item_is_not_used = not item.being_used
+            pressing_mouse = pygame.mouse.get_pressed()[0]
+            selectee_is_alive = not player_enemies.SquadMan.squad_list[UserInterface.index_selected].is_dead
+            if selectee_is_alive and pressing_mouse and touching_hitbox and item_is_not_used:
+                player_enemies.SquadMan.squad_list[UserInterface.index_selected].select_current_item(item)
+                UserInterface.holding_item = True
+
+
+    # if not pygame.key.get_pressed()[pygame.K_q]:
+    #     user_input.key_pressed = False
+    #
+    # if pygame.key.get_pressed()[pygame.K_q] and not user_input.key_pressed:
+    #     if SlowMo.SlowMo.slow_motion_amount_left > 0:
+    #         SlowMo.SlowMo.slow_motion_on = not SlowMo.SlowMo.slow_motion_on
+    #         user_input.key_pressed = True
+    #         print("Q")
+
+    if not pygame.key.get_pressed()[pygame.K_TAB]:
+        user_input.key_pressed = False
+
+    if pygame.key.get_pressed()[pygame.K_TAB] and not user_input.key_pressed and UserInterface.can_show_inventory:
+        UserInterface.loaded_inventory = not UserInterface.loaded_inventory
+        user_input.key_pressed = True
+
+
     ###############
     # ALL CAMERAS #
     ###############
     gameCamera.action()
-
-    ##############
-    # BACKGROUND #
-    ##############
-    draw_dest.fill((50, 50, 50))
 
     #######################
     # RENDERING THE LEVEL #
@@ -402,6 +487,12 @@ def in_level():
         _y = c_y * settings.cell_dimension
         scene_points.render(draw_dest, scene_points.x-_x, scene_points.y-_y)
 
+    #########
+    # Logic #
+    #########
+
+    # Slow Motion
+    SlowMo.SlowMo.slow_motion()
 
     # Squad
     player_enemies.SquadMan.make_footsteps()
@@ -460,9 +551,6 @@ def in_level():
         pygame.draw.circle(draw_dest, (255, 0, 0), (snd.x-_x, snd.y-_y), radius=snd.radius,width=2)
         snd.destroy()
 
-    # Anything requesting to be deleted will be deleted here
-    deletor.Deleter.delete_all_requests()
-
     # Center
     if center_scope:
         _x = c_x * settings.cell_dimension
@@ -473,12 +561,20 @@ def in_level():
         pygame.draw.line(draw_dest, (255, 0, 0), (settings.WINDOW_WIDTH-_x-1, settings.WINDOW_HEIGHT-w-_y-1),
                      (settings.WINDOW_WIDTH-_x-1, settings.WINDOW_HEIGHT+w-_y-1), 2)
 
-    #
+    # Performance
+    if GameVariables.debug_mode:
+        debug_information()
+    else:
+        # 640x360 screen
+        # 1/4 of the screen
+        squad_information_ui()
 
 if __name__ == "__main__":
     game()
 
 print("======== Video Information ========\n", pygame.display.Info())
+
+print("======== Enemy Information ========")
 for i in all_enemy_refs:
     print(i)
 

@@ -2,8 +2,6 @@ import pygame
 import math
 import copy
 import ALL_SPRITES
-import pathfind
-# import better_pathfinding
 import settings
 import utilityfuncs
 import Sprites
@@ -14,16 +12,18 @@ import effects
 import camera
 import deletor
 import entities
+import SlowMo
+import pathfind
 
 WEAPONS_REF = Weapons.WEAPONS_REF
 
 class MapData:
     MAP_GEOMETRY:list[list[int]] = []
-    # @classmethod
-    # def find_all_hiding_spots(cls) -> set[tuple[int, int]]:
-        # All places
-# Enemy mobster
+
+# Enemies all belong here
 enemy_list = []
+
+# Sprites
 def gen_soldier_sprites():
     return {
         "Pistol" : Sprites.Sprite(
@@ -109,6 +109,18 @@ def gen_soldier_sprites():
                 "SOLDIER_225_RLAUNCHER",
                 "SOLDIER_270_RLAUNCHER",
                 "SOLDIER_315_RLAUNCHER",
+            )
+        ),
+        "None" : Sprites.Sprite(
+            (
+                "SOLDIER_BASIC",
+                "SOLDIER_BASIC",
+                "SOLDIER_BASIC",
+                "SOLDIER_BASIC",
+                "SOLDIER_BASIC",
+                "SOLDIER_BASIC",
+                "SOLDIER_BASIC",
+                "SOLDIER_BASIC",
             )
         ),
         "LEGS" : Sprites.Sprite(
@@ -210,7 +222,18 @@ def gen_mobster_sprites():
                 "MOBSTER_315_RLAUNCHER",
             )
         ),
-
+        "None" : Sprites.Sprite(
+            (
+                "MOBSTER",
+                "MOBSTER",
+                "MOBSTER",
+                "MOBSTER",
+                "MOBSTER",
+                "MOBSTER",
+                "MOBSTER",
+                "MOBSTER",
+            )
+        ),
         "LEGS" : Sprites.Sprite(
             (
                 "MOBSTER_LEG_LEFTUP",
@@ -221,7 +244,7 @@ def gen_mobster_sprites():
     }
 
 def fire_gun(obj, direction):
-    obj.cooldown += 1
+    obj.cooldown += 1 * SlowMo.SlowMo.slow_motion_ratio
     if obj.cooldown > obj.get_weapon().fire_cooldown:
         base_ref = WEAPONS_REF[obj.current_weapon_name].damage
         total_damage = base_ref
@@ -229,7 +252,7 @@ def fire_gun(obj, direction):
         d = md_dir // 45
         vec_x = math.cos(math.radians(d * 45)) * 8
         vec_y = math.sin(math.radians(d * 45)) * 8
-        obj.focused = False#True
+        obj.focused = False
         wep = obj.get_weapon()
 
         for i in range(wep.pellets):
@@ -255,9 +278,7 @@ def fire_gun(obj, direction):
 
         entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / (base_ref+1)) * 30)
         obj.sprite.set_image_index(d)
-        # shake_factor = total_damage / 20
-        # camera.Camera.activeCam.screen_shake(shake_factor * 3)
-        obj.knockback((total_damage / 50) ** 0.8 + random.randint(1, 2), direction + 180)
+        obj.knockback((total_damage / 50) ** 0.8 + random.randint(1, 2) * (bool(total_damage > 0)), direction + 180)
         obj.cooldown = 0
 
 def switch_sprite(obj):
@@ -275,12 +296,22 @@ def switch_sprite(obj):
         obj.sprite = obj.grenade_sprite
     elif obj.current_weapon_name == "RocketLauncher":
         obj.sprite = obj.rocket_sprite
-
+    else:
+        obj.sprite = obj.basic_sprite
+def random_weapon():
+    return random.choice(["Pistol", "Revolver", "Shotgun", "Thompson", "Bar", "GrenadeLauncher", "RocketLauncher"])
 class SquadMan:
     INDEX = 0
     MAX_SQUAD = 4
     squad_list:list = []
     squad_footstep_counter = 0
+    inventory:list[Weapons.InventoryWeapon] = [
+        Weapons.InventoryWeapon("None", 0, 9, 9),
+        Weapons.InventoryWeapon(random_weapon(), 6, -1, -1),
+        Weapons.InventoryWeapon(random_weapon(), 6, -1, -1),
+        Weapons.InventoryWeapon(random_weapon(), 6, -1, -1),
+        Weapons.InventoryWeapon(random_weapon(), 6, -1, -1),
+    ]
     @classmethod
     def nums_active(cls):
         nums = 0
@@ -311,6 +342,13 @@ class SquadMan:
     def living_squad_members(cls):
         return [sq_member for sq_member in SquadMan.squad_list if sq_member is not None]
 
+    @classmethod
+    def first_living_member(cls):
+        for i in SquadMan.squad_list:
+            if not i.is_dead:
+                return i
+        return None
+
     def __init__(self, loc:tuple[float, float]):
         super().__init__()
         self.x, self.y = loc
@@ -334,6 +372,7 @@ class SquadMan:
         self.bar_sprite = all_sprites["Bar"]
         self.grenade_sprite = all_sprites["GrenadeLauncher"]
         self.rocket_sprite = all_sprites["RocketLauncher"]
+        self.basic_sprite = all_sprites["None"]
 
         self.leg_normal_sprite = all_sprites["LEGS"]
 
@@ -346,6 +385,8 @@ class SquadMan:
         )
         self.leg_sprite = self.leg_normal_sprite
 
+        self.front_dir:float = 0
+
         self.crouching = False # Crouching enemy
         self.sprite = self.pistol_sprite
         self.move_path = []
@@ -355,12 +396,15 @@ class SquadMan:
         self.knock_back_strength = 0
         self.knock_back_dir = 0
 
-        self.current_weapon_name = random.choice(["Shotgun", "Revolver", "Pistol", "Thompson", "Bar", "GrenadeLauncher", "RocketLauncher"])
+        self.current_item_used = SquadMan.inventory[0]
+        self.current_weapon_name = self.current_item_used.weapon_name
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
 
         self.cooldown = 0
         self.cooldown_steps = 0
         self.speed = 0.5
+
+        self.target:Enemy|None = None
 
         self.is_dead = False
 
@@ -378,9 +422,10 @@ class SquadMan:
         return self.x, self.y
 
     def action(self):
-        # self.cooldown = max(self.cooldown - 0.01, 0)
+        if self.focused:
+            self.sprite.set_image_index(int(self.front_dir / 45))
         if self.hp < self.max_hp/2:
-            self.hp = min(self.hp + 0.2 * (1 - (self.pain_amount / 200)), self.max_hp)
+            self.hp = min(self.hp + 0.2 * SlowMo.SlowMo.slow_motion_ratio * (1 - (self.pain_amount / 200)), self.max_hp)
         self.pain_amount = min(max(self.pain_amount - 0.1, 0), 200)
 
         if self.knock_back_strength >= 0.001:
@@ -391,13 +436,24 @@ class SquadMan:
 
         self.movement()
 
+
+    def auto_aim(self): # Soldiers will fire themselves if they're unused
+        for enemy in enemy_list:
+            if utilityfuncs.point_distance(self.x, self.y, enemy.x, enemy.y) < 90:
+                if utilityfuncs.line_of_sight(self.x, self.y, enemy.x, enemy.y, MapData.MAP_GEOMETRY):
+                    self.front_dir = utilityfuncs.point_direction(self.x, self.y, enemy.x, enemy.y)
+                    self.focused = True
+                    fire_gun(self, self.front_dir)
+                    break
+
+
     def movement(self):
         spd_modifier = (2 - SquadMan.nums_active() / 4) * 1.25
         if len(self.move_path) == 0:
             if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 2:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, self.dest_x, self.dest_y)
-                self.x += math.cos(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier
-                self.y -= math.sin(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier
+                self.x += math.cos(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier #* (SlowMo.SlowMo.slow_motion_ratio * 2)
+                self.y -= math.sin(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier #* (SlowMo.SlowMo.slow_motion_ratio * 2)
             else:
                 self.dest_x, self.dest_y = self.x, self.y
                 self.leg_sprite.set_image_index(2)
@@ -408,10 +464,9 @@ class SquadMan:
 
             if utilityfuncs.point_distance(self.x, self.y, x, y) > 5:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, x, y)
-                if self.focused:
-                    self.sprite.set_image_index(int(dir_ / 45))
-                self.x += math.cos(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier
-                self.y -= math.sin(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier
+                self.front_dir = dir_
+                self.x += math.cos(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier #* (SlowMo.SlowMo.slow_motion_ratio * 2)
+                self.y -= math.sin(math.radians(dir_)) * self.speed * self.get_weapon().speed_modifier * spd_modifier #* (SlowMo.SlowMo.slow_motion_ratio * 2)
             else:
                 self.move_path.pop(0)
 
@@ -441,6 +496,13 @@ class SquadMan:
                 pygame.draw.rect(dest, (0, 0, 0), (x - 10, y-3, 2, 13))
                 r = self.cooldown / self.get_weapon().fire_cooldown
                 pygame.draw.rect(dest, (255, 255, 255), (x - 10, y+10 - 13 * r, 2, 13 * r))
+
+            # Drawing move path
+            # if len(self.move_path) > 0:
+            #     for i in range(len(self.move_path)):
+            #         offset_x = self.move_path[i][0] * settings.cell_dimension - self.x + settings.cell_dimension/2
+            #         offset_y = self.move_path[i][1] * settings.cell_dimension - self.y + settings.cell_dimension/2
+            #         pygame.draw.circle(dest, (0, 255, 0), (x+offset_x, y+offset_y), 1)
         else:
             side_ways = pygame.transform.rotate(ALL_SPRITES.ASP["SOLDIER_DEAD_BODY"], 270)
             side_ways_rect = side_ways.get_rect(center=(x,y))
@@ -483,7 +545,12 @@ class SquadMan:
             self.is_dead = True
             self.being_used = False
             # self.destroy()
+            self.deselect_weapon()
 
+    def deselect_weapon(self):
+        self.current_item_used.being_used = False
+        self.current_item_used.used_by_obj = None
+        self.current_item_used = SquadMan.inventory[0]
 
     def destroy(self):
         deletor.Deleter.request_delete(self, SquadMan.squad_list)
@@ -494,11 +561,27 @@ class SquadMan:
     def switch_sprites(self):
         switch_sprite(self)
 
+    def select_current_item(self, item:Weapons.InventoryWeapon):
+        if item is not self.current_item_used:
+            self.cooldown = 0
+            # Unuse that item
+            self.current_item_used.being_used = False
+            self.current_item_used.used_by_obj = None
+
+            # Get new item
+            self.current_item_used = item
+            if item.weapon_name != "None":
+                self.current_item_used.used_by_obj = self
+                self.current_item_used.being_used = True
+            self.current_weapon_name = item.weapon_name
+            self.current_weapon = Weapons.WEAPONS_REF[item.weapon_name]
 
     def firing(self, direction):
         if self.being_used:
             if pygame.key.get_pressed()[pygame.K_e] or pygame.mouse.get_pressed()[2]:
                 fire_gun(self, direction)
+        else:
+            self.auto_aim()
 
 
     def knockback(self, strength, knock_dir):
@@ -592,6 +675,7 @@ class Enemy:
     def check_death(self):
         if self.hp <= 0:
             self.destroy()
+            SlowMo.SlowMo.slow_motion_amount_left += SlowMo.SlowMo.slow_motion_max_amount / 5
 
     # Recommended to override
     def __copy__(self):
@@ -622,6 +706,7 @@ class EnemyMobster(Enemy):
         self.bar_sprite = all_sprites["Bar"]
         self.grenade_sprite = all_sprites["GrenadeLauncher"]
         self.rocket_sprite = all_sprites["RocketLauncher"]
+        self.basic_sprite = all_sprites["None"]
         self.sprite = self.thompson_sprite
 
         self.leg_sprite = all_sprites["LEGS"]
@@ -706,6 +791,12 @@ class EnemyMobster(Enemy):
     def action(self):
         self.aim_direction = pygame.math.lerp(self.aim_direction, self.front_direction, 0.2)
         self.switch_sprites()
+        if self.knock_back_strength >= 0.001:
+            self.knock_back_strength *= 0.9
+            self.leg_sprite.set_image_speed(4/30)
+        else:
+            self.knock_back_strength = 0
+
         if self.state == "IDLE":
             if self.sound_heard is not None:
                 self.state = "DECISION"
@@ -720,7 +811,7 @@ class EnemyMobster(Enemy):
                 self.alerted_saw_player = 5
                 self.alert_others()
 
-            self.variable_space[0] += 1
+            self.variable_space[0] += 1 * SlowMo.SlowMo.slow_motion_ratio
             if self.variable_space[0] >= 1 * 60:
                 self.look_around(45)
                 self.variable_space[0] = 0
@@ -749,15 +840,15 @@ class EnemyMobster(Enemy):
                     self.state = "DECISION"
                     self.clear_variable_space()
 
-                self.variable_space[0] += 1
+                self.variable_space[0] += 1 * SlowMo.SlowMo.slow_motion_ratio
                 if self.variable_space[0] >= 12 * 60:
                     self.state = "IDLE"
                     self.clear_variable_space()
                 else:
-                    self.variable_space[1] += 1
+                    self.variable_space[1] += 1 * SlowMo.SlowMo.slow_motion_ratio
                     if self.variable_space[1] >= 0.5 * 30 + self.variable_space[2]:
                         # Freakout cooldown
-                        self.variable_space[2] += 20
+                        self.variable_space[2] += 20 * SlowMo.SlowMo.slow_motion_ratio
                         __search_range = 20
                         self.look_around(45)
                         self.move_forward_a_little(MapData.MAP_GEOMETRY, __search_range)
@@ -843,8 +934,8 @@ class EnemyMobster(Enemy):
             if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 5:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, self.dest_x, self.dest_y)
                 self.front_direction = dir_
-                self.x += math.cos(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * 0.8
-                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * 0.8
+                self.x += math.cos(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * 0.8 * SlowMo.SlowMo.slow_motion_ratio
+                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * 0.8 * SlowMo.SlowMo.slow_motion_ratio
             else:
                 self.dest_x, self.dest_y = self.x, self.y
                 self.leg_sprite.set_image_index(2)
@@ -858,8 +949,8 @@ class EnemyMobster(Enemy):
                 self.front_direction = dir_
                 if not self.is_firing:
                     self.sprite.set_image_index(dir_//45)
-                self.x += math.cos(math.radians(dir_)) * 0.5 * self.speed_factor
-                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.speed_factor
+                self.x += math.cos(math.radians(dir_)) * 0.5 * self.speed_factor * SlowMo.SlowMo.slow_motion_ratio
+                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.speed_factor * SlowMo.SlowMo.slow_motion_ratio
             else:
                 self.move_path.pop(0)
 
@@ -940,6 +1031,7 @@ class EnemySoldier(Enemy):
         self.bar_sprite = all_sprites["Bar"]
         self.grenade_sprite = all_sprites["GrenadeLauncher"]
         self.rocket_sprite = all_sprites["RocketLauncher"]
+        self.basic_sprite = all_sprites["None"]
         self.sprite = self.thompson_sprite
 
         self.leg_sprite = all_sprites["LEGS"]
@@ -951,7 +1043,6 @@ class EnemySoldier(Enemy):
         self.current_weapon_name = weapon_type
         self.current_weapon = WEAPONS_REF[self.current_weapon_name]
         self.move_path = []
-        self.past_path = []
         self.faction_color = (255, 0, 0)
         self.repr_name = ""
 
@@ -979,7 +1070,6 @@ class EnemySoldier(Enemy):
 
     def set_dest(self, x, y, m):
         self.move_path.clear()
-        self.past_path.clear()
         self.dest_x, self.dest_y = x, y
         def conv(val):
             return int(val/settings.cell_dimension)
@@ -991,8 +1081,7 @@ class EnemySoldier(Enemy):
     def switch_state(self):
         self.variable_space.clear()
 
-    def seeing_enemy(self, enemies:list, m:list[list[int]]):
-        fov = 200
+    def seeing_enemy(self, enemies:list, m:list[list[int]], fov=180):
         for e in enemies:
             if (not e.is_dead) and utilityfuncs.line_of_sight(self.x, self.y, e.xy()[0], e.xy()[1], m):
                 self.target_x = e.xy()[0]
@@ -1017,20 +1106,19 @@ class EnemySoldier(Enemy):
     def stop_moving(self):
         self.dest_x, self.dest_y = self.x, self.y
         self.move_path.clear()
-        self.past_path.clear()
 
     def alert_others(self):
         alert_num = 2
         for e in enemy_list:
-            enemy_not_alerted_already = e.target_obj is None
-            enemy_not_making_a_move_already = len(e.move_path) == 0
-            enemy_not_dead = not e.is_dead
-            can_call_enemy = utilityfuncs.point_distance(self.x, self.y, e.x, e.y) < 60
-            maximum_enemies_alerted = alert_num > 0
-            if enemy_not_alerted_already and enemy_not_dead and can_call_enemy and maximum_enemies_alerted \
-                    and enemy_not_making_a_move_already:
-                if utilityfuncs.line_of_sight(self.x, self.y, e.x, e.y, MapData.MAP_GEOMETRY):
-                    if type(self) == type(e):
+            if type(e) == type(self):
+                enemy_not_alerted_already = e.target_obj is None
+                enemy_not_making_a_move_already = len(e.move_path) == 0
+                enemy_not_dead = not e.is_dead
+                can_call_enemy = utilityfuncs.point_distance(self.x, self.y, e.x, e.y) < 60
+                maximum_enemies_alerted = alert_num > 0
+                if enemy_not_alerted_already and enemy_not_dead and can_call_enemy and maximum_enemies_alerted \
+                        and enemy_not_making_a_move_already:
+                    if utilityfuncs.line_of_sight(self.x, self.y, e.x, e.y, MapData.MAP_GEOMETRY):
                         e.target_x = self.target_x
                         e.target_y = self.target_y
                         e.front_direction = utilityfuncs.point_direction(e.x, e.y, e.target_x, e.target_y)
@@ -1047,6 +1135,12 @@ class EnemySoldier(Enemy):
             self.hp = min(self.hp + 0.2 * (1 - (self.pain_amount / 200)), self.max_hp)
         self.pain_amount = min(max(self.pain_amount - 0.1, 0), 200)
         self.alerted_saw_player = max(self.alerted_saw_player - 0.1, 0)
+
+        if self.knock_back_strength >= 0.001:
+            self.knock_back_strength *= 0.9
+            self.leg_sprite.set_image_speed(4/30)
+        else:
+            self.knock_back_strength = 0
 
         # ALL THE FUNCTIONS AND TOOLS AT YOUR DISPOSAL
         # self.state                - state of the player
@@ -1076,8 +1170,14 @@ class EnemySoldier(Enemy):
                 self.front_direction = utilityfuncs.point_direction(self.x, self.y, sound.x + random.randrange(-16, 16), sound.y + random.randrange(-16, 16))
                 self.set_dest(sound.x, sound.y, MapData.MAP_GEOMETRY)
                 self.set_speed_factor(1.5)
-                self.state = "SCOUT_OUT0"
+                self.state = "SCOUT_OUT0" if sound.sound_tag != "ENEMY_DEATH" else "SCOUT_OUT2"
                 self.sound_heard = None
+            # Looking around
+            if self.variable_space[0] >= random.random() * 60 + 60:
+                self.look_around(45)
+                self.variable_space[0] = 0
+            else:
+                self.variable_space[0] += 1 * SlowMo.SlowMo.slow_motion_ratio
 
         elif self.state == "SCOUT_OUT0": # Stop for a second
             # Assuming a destination has been set
@@ -1086,7 +1186,7 @@ class EnemySoldier(Enemy):
                 self.clear_variable_space()
                 self.state = "SCOUT_OUT1"
             else:
-                self.variable_space[0] += 1
+                self.variable_space[0] += 1 * SlowMo.SlowMo.slow_motion_ratio
 
         elif self.state == "SCOUT_OUT1":
             # Going towards the destination, stopping if around the corner is the sound source
@@ -1104,8 +1204,8 @@ class EnemySoldier(Enemy):
                         self.variable_space[0] = 15
             else:
                 self.is_stopping = True
-                if self.variable_space[1] < 2 * 60:
-                    self.variable_space[1] += 1
+                if self.variable_space[1] < 1 * 60:
+                    self.variable_space[1] += 1 * SlowMo.SlowMo.slow_motion_ratio
                 else:
                     self.clear_variable_space()
                     self.state = "SCOUT_OUT2"
@@ -1124,7 +1224,7 @@ class EnemySoldier(Enemy):
                         self.set_speed_factor(2)
                         self.variable_space[0] = 15
                     else:
-                        self.variable_space[1] += 1
+                        self.variable_space[1] += 1 * SlowMo.SlowMo.slow_motion_ratio
                         self.is_stopping = True
             else:
                 # Go to the path after doing stuff. If there is a destination.
@@ -1132,9 +1232,9 @@ class EnemySoldier(Enemy):
                     self.is_stopping = False
                     if len(self.move_path) == 0:
                         self.clear_variable_space()
-                        self.state = "IDLE"
+                        self.state = "WANDER"
                 else:
-                    self.variable_space[2] += 1
+                    self.variable_space[2] += 1 * SlowMo.SlowMo.slow_motion_ratio
         elif self.state == "MOVE_TO_WHERE_LAST_SEEN_ENEMY":
             if self.target_obj is not None:
                 self.is_stopping = False
@@ -1155,22 +1255,29 @@ class EnemySoldier(Enemy):
                     # IF haven't found anyone, then lost track of enemy
                     if len(self.move_path) == 0:
                         if self.variable_space[1] < 4 * 60:
-                            self.variable_space[1] += 1
+                            self.variable_space[1] += 1 * SlowMo.SlowMo.slow_motion_ratio
                             self.set_speed_factor(1)
                         else:
                             self.target_obj = None
-                            self.state = "IDLE"
+                            self.state = "WANDER"
                             self.clear_variable_space()
             else:
-                if self.variable_space[2] > 6 * 60:
-                    self.target_obj = None
-                    self.state = "IDLE"
-                    self.clear_variable_space()
-                else:
-                    self.variable_space[2] += 1
-                    if len(self.move_path) == 0:
-                        self.move_forward_a_little(MapData.MAP_GEOMETRY, 20)
-                        self.look_around(45)
+                self.target_obj = None
+                self.state = "WANDER"
+                self.clear_variable_space()
+
+        elif self.state == "WANDER":
+            if self.variable_space[0] > 6 * 60:
+                self.target_obj = None
+                self.state = "IDLE"
+                self.clear_variable_space()
+            else:
+                self.variable_space[0] += 1 * SlowMo.SlowMo.slow_motion_ratio
+                self.variable_space[1] += 1 * SlowMo.SlowMo.slow_motion_ratio
+                if self.variable_space[1] > random.random() * 60 + 15:
+                    self.move_forward_a_little(MapData.MAP_GEOMETRY, 20)
+                    self.look_around(45)
+                    self.variable_space[1] = 0
 
         elif self.state == "ATTACK":
             # self.stop_moving()
@@ -1180,6 +1287,10 @@ class EnemySoldier(Enemy):
             if self.seeing_enemy(SquadMan.squad_list, MapData.MAP_GEOMETRY):
                 self.sprite.set_image_index(int(__d / 45))
                 self.firing(__d + random.randrange(-1, 1)) #* self.inaccuracy_multiplier)
+                if self.target_obj is not None:
+                    if self.target_obj.is_dead:
+                        self.state = "MOVE_TO_WHERE_LAST_SEEN_ENEMY"
+                        self.set_dest(self.target_obj.x, self.target_obj.y, MapData.MAP_GEOMETRY)
                 self.stop_moving()
             else:
                 self.is_firing = False
@@ -1196,14 +1307,12 @@ class EnemySoldier(Enemy):
 
         if self.sound_heard is not None:
             if self.sound_heard.sound_tag == "ENEMY_DEATH":
-                if self.deaths_heard == 1:
-                    if self.state in "SCOUT_OUT0 SCOUT_OUT1 SCOUT_OUT2":
-                        self.move_path = self.past_path[:] # Retreating
-                        self.past_path.clear()
-                        self.deaths_heard = 0
-                        self.state = "IDLE"
-                self.state = "IDLE"
-                self.deaths_heard += 1
+                sound = self.sound_heard
+                self.seeing_enemy(SquadMan.squad_list, MapData.MAP_GEOMETRY, fov=360)
+                # self.state = "MOVE_TO_WHERE_LAST_SEEN_ENEMY"
+                if utilityfuncs.point_distance(self.x, self.y, sound.x, sound.y) < 75:
+                    self.set_dest(sound.x, sound.y, MapData.MAP_GEOMETRY)
+                    self.state = "IDLE"
             else:
                 if self.state != "ATTACK": # So that enemies do not automatically retreat back into non-combat state
                     if len(self.move_path) == 0:
@@ -1212,7 +1321,7 @@ class EnemySoldier(Enemy):
         if not self.is_stopping:
             self.movement()
         if self.alerted_saw_player > 0:
-            self.alerted_saw_player = max(self.alerted_saw_player - 0.1, 0)
+            self.alerted_saw_player = max(self.alerted_saw_player - 0.1 * SlowMo.SlowMo.slow_motion_ratio, 0)
 
     def look_around(self, _range):
         self.front_direction += random.choice([-_range, _range])
@@ -1258,8 +1367,8 @@ class EnemySoldier(Enemy):
             if utilityfuncs.point_distance(self.dest_x, self.dest_y, self.x, self.y) > 5:
                 dir_ = utilityfuncs.point_direction(self.x, self.y, self.dest_x, self.dest_y)
                 self.front_direction = dir_
-                self.x += math.cos(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * 0.8
-                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * 0.8
+                self.x += math.cos(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * 0.8 * SlowMo.SlowMo.slow_motion_ratio
+                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.get_weapon().speed_modifier * 0.8 * SlowMo.SlowMo.slow_motion_ratio
             else:
                 self.dest_x, self.dest_y = self.x, self.y
                 self.leg_sprite.set_image_index(2)
@@ -1273,10 +1382,9 @@ class EnemySoldier(Enemy):
                 self.front_direction = dir_
                 if not self.is_firing:
                     self.sprite.set_image_index(dir_//45)
-                self.x += math.cos(math.radians(dir_)) * 0.5 * self.speed_factor
-                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.speed_factor
+                self.x += math.cos(math.radians(dir_)) * 0.5 * self.speed_factor * SlowMo.SlowMo.slow_motion_ratio
+                self.y -= math.sin(math.radians(dir_)) * 0.5 * self.speed_factor * SlowMo.SlowMo.slow_motion_ratio
             else:
-                self.past_path.insert(0, self.move_path[0])
                 self.move_path.pop(0)
 
             self.leg_sprite.run_sprite()
@@ -1323,7 +1431,6 @@ class EnemySoldier(Enemy):
         self.hp -= amount * damage_multiplier
         self.front_direction = source_dir
         self.pain_amount += amount/2
-        # self.inaccuracy_multiplier = (self.surprise_factor/3) * damage_multiplier
 
         num_splots = int(1 + amount / 20)
         for i in range(num_splots):

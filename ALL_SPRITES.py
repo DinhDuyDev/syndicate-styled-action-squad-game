@@ -174,6 +174,7 @@ ASP:dict[str, pygame.Surface] = {
     "SOLDIER_270_RLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_270_rlauncher.png").convert_alpha(),
     "SOLDIER_315_RLAUNCHER": pygame.image.load("sprites/soldier_spr/soldier_315_rlauncher.png").convert_alpha(),
 
+    "SOLDIER_BASIC" : pygame.image.load("sprites/soldier_spr/soldier_basic.png").convert_alpha(),
     "SOLDIER_DEAD_BODY": pygame.image.load("sprites/soldier_spr/soldier_dead_body.png").convert_alpha(),
 
     "SOLDIER_LEGS_LEFT": pygame.image.load("sprites/soldier_spr/soldier_legs_left.png").convert_alpha(),
@@ -211,6 +212,7 @@ ASP:dict[str, pygame.Surface] = {
     "Shotgun": pygame.image.load("sprites/weapons_spr/shotgun.png").convert_alpha(),
     "RocketLauncher": pygame.image.load("sprites/weapons_spr/rlauncher.png").convert_alpha(),
     "GrenadeLauncher": pygame.image.load("sprites/weapons_spr/glauncher.png").convert_alpha(),
+    "None" : pygame.image.load("sprites/weapons_spr/none.png").convert(),
 
     # ui_spr
     "SOLDIER_SILHOUETTE": pygame.image.load("sprites/ui_spr/soldier_silhouette1.png").convert_alpha(),

@@ -70,7 +70,7 @@ def pathfind(x, y, x1, y1, mat):
             if in_closed:
                 continue
 
-            non_traversable = mat[curr_node.y+dy][curr_node.x+dx] not in tiles.TRAVERSABLE_TILES
+            non_traversable = mat[curr_node.y+dy][curr_node.x+dx] != 0#not in tiles.TRAVERSABLE_TILES
             n = mat[curr_node.y+dy][curr_node.x+dx]
             if n == 6 and n in tiles.TRAVERSABLE_TILES:
                 print("6 is traversable")

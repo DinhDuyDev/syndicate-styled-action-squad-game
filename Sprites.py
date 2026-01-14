@@ -1,5 +1,7 @@
 import pygame
+import SlowMo
 import ALL_SPRITES
+
 class Sprite:
     def __init__(self, images_links:list|tuple):
         self.image_links = images_links
@@ -13,7 +15,7 @@ class Sprite:
         return self.images[int(self.image_index)]
 
     def run_sprite(self):
-        self.image_index += self.image_speed
+        self.image_index += self.image_speed * SlowMo.SlowMo.slow_motion_ratio
         if self.image_index >= len(self.images):
             self.image_index = 0
 

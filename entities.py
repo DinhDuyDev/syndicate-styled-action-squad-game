@@ -7,6 +7,7 @@ import utilityfuncs
 import camera
 import random
 import effects
+import SlowMo
 import ALL_SPRITES
 
 ## ENTITIES ADT:
@@ -40,7 +41,7 @@ class Grenade:
         all_entities.append(self)
 
     def action(self):
-        self.timer -= 1
+        self.timer -= 1 * SlowMo.SlowMo.slow_motion_ratio
         if self.timer <= 0:
             self.destroy()
 
@@ -59,9 +60,9 @@ class Grenade:
             self.speed -= 0.5
             effects.MuzzleFlash(self.x, self.y)
 
-        self.speed = max(self.speed - 0.05, 0)
-        self.x += self.vec_x * self.speed
-        self.y -= self.vec_y * self.speed
+        self.speed = max(self.speed - 0.05 * SlowMo.SlowMo.slow_motion_ratio, 0)
+        self.x += self.vec_x * self.speed * SlowMo.SlowMo.slow_motion_ratio
+        self.y -= self.vec_y * self.speed * SlowMo.SlowMo.slow_motion_ratio
         self.rotation += self.rotation_speed
         self.rotation_speed *= 0.9
 
@@ -69,7 +70,7 @@ class Grenade:
             Smoke(self.x, self.y, decrease_multiplier=1)
             self.cooldown = 0
         else:
-            self.cooldown += 1
+            self.cooldown += 1 * SlowMo.SlowMo.slow_motion_ratio
 
     def destroy(self):
         Explosion(self.x, self.y, GRENADE_DAMAGE, self.attack_targets)
@@ -110,8 +111,8 @@ class Rocket:
         all_entities.append(self)
 
     def action(self):
-        self.rocket_scale = min(self.rocket_scale + 0.05, 1)
-        self.real_speed = min(self.real_speed + 0.2, self.speed)
+        self.rocket_scale = min(self.rocket_scale + 0.05 * SlowMo.SlowMo.slow_motion_ratio, 1)
+        self.real_speed = min(self.real_speed + 0.2 * SlowMo.SlowMo.slow_motion_ratio, self.speed)
         collided = False
         self.timer -= 1
         if self.timer <= 0:
@@ -130,8 +131,8 @@ class Rocket:
             effects.MuzzleFlash(self.x, self.y)
             collided = True
 
-        self.x += self.vec_x * self.real_speed
-        self.y -= self.vec_y * self.real_speed
+        self.x += self.vec_x * self.real_speed * SlowMo.SlowMo.slow_motion_ratio
+        self.y -= self.vec_y * self.real_speed * SlowMo.SlowMo.slow_motion_ratio
 
         for target in self.attack_targets:
             if self.get_hitbox().colliderect(target.get_hitbox()):
@@ -231,12 +232,12 @@ class DustParticles:
         self.direction = direction#random.random() * 360
 
     def action(self):
-        self.x += math.cos(math.radians(self.direction)) * self.speed
-        self.y -= math.sin(math.radians(self.direction)) * self.speed
+        self.x += math.cos(math.radians(self.direction)) * self.speed * SlowMo.SlowMo.slow_motion_ratio
+        self.y -= math.sin(math.radians(self.direction)) * self.speed * SlowMo.SlowMo.slow_motion_ratio
         if self.cooldown < 0:
             self.destroy()
         else:
-            self.cooldown -= 0.5
+            self.cooldown -= 0.5 * SlowMo.SlowMo.slow_motion_ratio
 
     def render(self, dest: pygame.Surface, x, y):
         pygame.draw.rect(dest, self.color, (x-1, y-1, 2, 2))
@@ -281,16 +282,16 @@ class Smoke:
         if MAP_GEOMETRY[int(front_y / settings.cell_dimension)][int(self.x / settings.cell_dimension)] != 0:
             self.vec_y = 0
         else:
-            self.x += self.vec_x
+            self.x += self.vec_x * SlowMo.SlowMo.slow_motion_ratio
         if MAP_GEOMETRY[int(self.y / settings.cell_dimension)][int(front_x / settings.cell_dimension)] != 0:
             self.vec_x = 0
         else:
-            self.y -= self.vec_y
+            self.y -= self.vec_y * SlowMo.SlowMo.slow_motion_ratio
 
         self.sprite.run_sprite()
         if self.sprite.get_image_index() >= self.sprite.get_image_number()-1:
             self.destroy()
-        self.rotation += 1
+        self.rotation += 1 * SlowMo.SlowMo.slow_motion_ratio
         self.scale *= self.decrease_multiplier
 
     def render(self, dest:pygame.Surface, x,y):
@@ -332,16 +333,12 @@ class SmokeTrail:
 
         if MAP_GEOMETRY[int(front_y / settings.cell_dimension)][int(self.x / settings.cell_dimension)] != 0:
             self.vec_y = 0
-            if self.grav_speed > 0:
-                self.grav_speed = 0
-            else:
-                self.grav_speed = -self.grav_speed
         else:
-            self.x += self.vec_x
+            self.x += self.vec_x * SlowMo.SlowMo.slow_motion_ratio
         if MAP_GEOMETRY[int(self.y / settings.cell_dimension)][int(front_x / settings.cell_dimension)] != 0:
             self.vec_x = 0
         else:
-            self.y -= self.vec_y
+            self.y -= self.vec_y * SlowMo.SlowMo.slow_motion_ratio
 
         # Gravity
         if self.gravity:
@@ -349,12 +346,12 @@ class SmokeTrail:
             self.grav_speed = min(self.grav_speed + self.grav_accel, self.grav_limit)
 
         # Dying
-        self.last_length -= 1
+        self.last_length -= 1 * SlowMo.SlowMo.slow_motion_ratio
         if self.last_length <= 0:
             self.destroy()
 
         # Create smoke
-        self.cooldown += 1
+        self.cooldown += 1 * SlowMo.SlowMo.slow_motion_ratio
         if self.cooldown > self.create_cooldown:
             s = Smoke(self.x, self.y)
             s.direction = self.direction + random.randrange(-20, 20)
