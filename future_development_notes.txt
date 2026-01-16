@@ -4,3 +4,7 @@ Be careful of redundant code.
 For cutscene objects: quite literally create a variable called TRIGGERED, when it's True, their action function is activated
 
 This is your flagship project. So never give up!
+
+
+Notes: Squad members are only "DOWNED". If all four members are downed, then you're all dead (no one will save you)
+Squad members can save each other -> undown.

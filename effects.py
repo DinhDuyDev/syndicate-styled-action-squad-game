@@ -3,7 +3,7 @@ import pygame
 import Sprites
 import utilityfuncs
 import deletor
-
+import math
 
 class MuzzleFlash:
     def __init__(self, x, y):

@@ -3,6 +3,8 @@ import math
 import weakref
 import psutil
 import pygame
+
+import colors
 import decorations
 import map
 import player_enemies
@@ -41,7 +43,7 @@ ww, wh = settings.WINDOW_WIDTH/settings.zoom, settings.WINDOW_HEIGHT/settings.zo
 
 class GameVariables:
     running = True
-    debug_mode = False
+    debug_mode = False#True
     GAME_FPS = 60
 
 class Performance:
@@ -186,73 +188,59 @@ def debug_information():
     draw_dest.blit(memory_amount, memory_rect)
 
 def squad_information_ui():
+    # On top of the screen
+    middle_screen = ww/2
+    # pygame.draw.line(draw_dest, (255, 255, 255), (middle_screen, 0), (middle_screen, wh))
+
+    # Names
+    squad_names = ["Markus", "Hans", "Tish", "Madsen"]
     mx, my = utilityfuncs.mouse_xy_transformation(draw_dest, game_screen.screen)
-    cell_w, cell_h = ww / 8, wh / 2
-    pygame.draw.rect(draw_dest, (0, 0, 0), (0, 0, cell_w*2, cell_h*2))
-    ind = 0
-    for i in range(2):
-        for j in range(2):
-            ind += 1
-            top_left = (j * cell_w, i * cell_h)
-            center = (j * cell_w+cell_w/2, i * cell_h + cell_h/2)
+    squad_ls = player_enemies.SquadMan.squad_list
+    for index in range(len(squad_ls)):
+        ui_x, ui_y = middle_screen - 68 * (1 - index + 0.5), 8
+        squad_member_sprite = squad_ls[index].get_sprite()
+        mask_outline = pygame.mask.from_surface(squad_member_sprite)
+        mask_surf = mask_outline.to_surface()
+        mask_surf.set_colorkey((0,0,0))
+        outline_color  = (255, 0, 0)
+        if squad_ls[index].being_used:
+            outline_color = (0, 255, 0)
+        if squad_ls[index].is_dead:
+            outline_color = (175, 175, 175)
 
-            # All members are alive.
-            sq_member = player_enemies.SquadMan.squad_list[ind - 1]
+        # Character and health and names
+        name_render = ingame_font.render(squad_names[index], False, outline_color)
+        name_rect = name_render.get_rect(midleft=(ui_x+12, ui_y-3))
+        draw_dest.blit(name_render, name_rect)
 
-            # Number
-            color = (255,0,0)
-            if sq_member.being_used:
-                color = (0,255,0)
-            if sq_member.is_dead:
-                color = (170,170,170)
-            number_background = big_font.render(str(ind), False, (100, 100, 100))
-            numb_background_rect = number_background.get_rect(center=center)
-            foreground = big_font.render(str(ind), False, color)
-            foreground_rect = foreground.get_rect(center=center)
-            draw_dest.blit(number_background, numb_background_rect)
-            draw_dest.blit(foreground, foreground_rect)
+        px_arr = pygame.PixelArray(mask_surf)
+        px_arr.replace((255,255,255), outline_color)
+        px_arr.close()
+        pos = [
+            (0, -1),
+            (-1, 0), (1, 0),
+            (0, 1),
+        ]
+        for offset in pos:
+            draw_dest.blit(mask_surf, mask_surf.get_rect(center=(ui_x-offset[0], ui_y-offset[1])))
 
+        # draw_dest.blit(outline_sprite, outline_sprite.get_rect(center=(64,64)))
+        draw_dest.blit(squad_member_sprite, squad_member_sprite.get_rect(center=(ui_x, ui_y)))
 
-            # Health
-            # # Outline
-            health_bar = ALL_SPRITES.ASP["SOLDIER_SILHOUETTE"].copy()
-            w = health_bar.get_width()
-            h = health_bar.get_height()
-            sub_height = min(int(((1-sq_member.health_ratio()) * h)), h)
-            health_bar_rect = health_bar.get_rect(
-                topright=(top_left[0]+cell_w - 4, top_left[1]+2))
-            draw_dest.blit(health_bar, health_bar_rect)
+        # Statistics (cooldown)
+        pygame.draw.rect(draw_dest, (0, 0, 0), (ui_x+12-1, ui_y+3-1, 18, 4), width=2)
+        pygame.draw.rect(draw_dest, (10, 10, 10), (ui_x+12, ui_y+3, 16, 2))
+        pygame.draw.rect(draw_dest, (255, 255, 255), (ui_x+12, ui_y+3, 16 * squad_ls[index].cooldown_ratio(), 2))
 
-            # Fill
-            health_fill = health_bar.subsurface((0, h-sub_height, w, sub_height))
-            health_arr = pygame.PixelArray(health_fill)
-            health_arr.replace((255, 255, 255), (255, 0, 0))
-            health_arr.replace((175, 175, 175), (255, 0, 0))
-            health_arr.replace((128, 128, 128), (255, 0, 0))
-            health_arr.replace((100, 100, 100), (255, 0, 0))
-            health_arr.close()
-            health_fill_rect = health_fill.get_rect(topright=(top_left[0] + cell_w - 4, top_left[1] + 2 + h - sub_height))
-            draw_dest.blit(health_fill, health_fill_rect)
+        # Statistics (ammo)
+        pygame.draw.rect(draw_dest, (0, 0, 0), (ui_x+12-1, ui_y+8-1, 18, 4), width=2)
+        pygame.draw.rect(draw_dest, (10, 10, 10), (ui_x+12, ui_y+8, 16, 2))
+        pygame.draw.rect(draw_dest, (55, 63, 12), (ui_x+12, ui_y+8, 16 * squad_ls[index].ammo_ratio(), 2))
 
-            # # WEAPON
-            # Outline
-            wep_spr = ALL_SPRITES.ASP[sq_member.current_weapon_name]
-            sub_width = int((sq_member.cooldown_ratio() * wep_spr.get_width()))
-            w = wep_spr.get_width()
-            h = wep_spr.get_height()
-            selected_weapon_sprite = pygame.transform.rotate(wep_spr, 90)
-            selected_weapon_sprite_rect = selected_weapon_sprite.get_rect(topleft=(top_left[0]+2, top_left[1]+3- w/2 * (w <= 16)))
-            draw_dest.blit(selected_weapon_sprite, selected_weapon_sprite_rect)
-
-            # Fill
-            cooldown_fill = pygame.transform.rotate(wep_spr.subsurface((0, 0, sub_width, h)), 90)
-            px_arr = pygame.PixelArray(cooldown_fill)
-            px_arr.replace((255, 255, 255), (255, 0, 0))
-            px_arr.close()
-            cooldown_fill_rect = cooldown_fill.get_rect(topleft=(top_left[0]+2, top_left[1]+3-w/2 * (w <= 16) +w-sub_width))
-            draw_dest.blit(cooldown_fill, cooldown_fill_rect)
-
-    # Choose for technique -> select using mouse button or mouse wheel who to choose for
+        # Statistics (health)
+        pygame.draw.rect(draw_dest, (0, 0, 0), (ui_x - 10, ui_y-4, 4, 14), width=2)
+        pygame.draw.rect(draw_dest, (0, 255, 0), (ui_x - 9, ui_y-3, 2, 12))
+        pygame.draw.rect(draw_dest, (255, 0, 0), (ui_x - 9, ui_y-3, 2, 12 * abs((1-squad_ls[index].health_ratio()))))
 
     # # Inventory
     if UserInterface.loaded_inventory:
@@ -264,18 +252,16 @@ def squad_information_ui():
         UserInterface.can_show_inventory = True
 
     if UserInterface.ui_offset <= wh:
-        inventory_x = cell_w * 2
         ofs = UserInterface.ui_offset
-        pygame.draw.rect(draw_dest, (25, 25, 25), (inventory_x, ofs, ww-inventory_x, wh))
+        pygame.draw.rect(draw_dest, (25, 25, 25), (0, ofs, ww, wh))
 
         # UI Inventory
         if UserInterface.can_show_inventory:
             for item in player_enemies.SquadMan.inventory:
                 if item.weapon_name != "None":
-                    item.display_x = item.x + inventory_x
-                    item.render(draw_dest, item.display_x, item.y + ofs)
+                    item.render(draw_dest, item.x, item.y + ofs)
                 else:
-                    pygame.draw.rect(draw_dest, (0, 0, 0), (inventory_x, ofs, 16, 16))
+                    pygame.draw.rect(draw_dest, (0, 0, 0), (0, ofs, 16, 16))
 
     # Drawing number
     if UserInterface.loaded_inventory:
@@ -377,16 +363,16 @@ def in_level():
                                         squad_man[j].being_used = False
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            index = 0
-            cell_w, cell_h = ww / 16, wh / 4
+            middle_x = ww/2
             sq_ls = player_enemies.SquadMan.squad_list
-            for i in range(2):
-                for j in range(2):
-                    hit_rect = pygame.Rect((j * cell_w, i * cell_h, cell_w, cell_h))
-                    if hit_rect.collidepoint(mx, my):
-                        if not sq_ls[index].is_dead:
-                            sq_ls[index].being_used = not sq_ls[index].being_used
-                    index += 1
+            width = 24
+            for index in range(4):
+                ui_x, ui_y = middle_x - 68 * (1 - index + 0.5), 8
+                hitbox = pygame.Rect(ui_x-width/2, ui_y-width/2, width, width)
+                if hitbox.collidepoint(mx, my):
+                    if not sq_ls[index].is_dead:
+                        sq_ls[index].being_used = not sq_ls[index].being_used
+                        pygame.draw.rect(draw_dest, (255, 0, 0), hitbox)
 
 
     ####################################
@@ -416,7 +402,6 @@ def in_level():
 
     if UserInterface.loaded_inventory:
         # Clicking on the weapons
-        padding = ww/4
         all_soldiers_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
         for key_index in range(len(all_soldiers_keys)):
             if pygame.key.get_pressed()[all_soldiers_keys[key_index]]:
@@ -425,23 +410,14 @@ def in_level():
 
         for item in player_enemies.SquadMan.inventory:
             item_rect = item.hitbox()
-            touching_hitbox = item_rect.collidepoint(mx-padding, my)
+            touching_hitbox = item_rect.collidepoint(mx, my)
             item_is_not_used = not item.being_used
             pressing_mouse = pygame.mouse.get_pressed()[0]
             selectee_is_alive = not player_enemies.SquadMan.squad_list[UserInterface.index_selected].is_dead
             if selectee_is_alive and pressing_mouse and touching_hitbox and item_is_not_used:
-                player_enemies.SquadMan.squad_list[UserInterface.index_selected].select_current_item(item)
+                player_enemies.SquadMan.squad_list[UserInterface.index_selected].select_item(item)
                 UserInterface.holding_item = True
-
-
-    # if not pygame.key.get_pressed()[pygame.K_q]:
-    #     user_input.key_pressed = False
-    #
-    # if pygame.key.get_pressed()[pygame.K_q] and not user_input.key_pressed:
-    #     if SlowMo.SlowMo.slow_motion_amount_left > 0:
-    #         SlowMo.SlowMo.slow_motion_on = not SlowMo.SlowMo.slow_motion_on
-    #         user_input.key_pressed = True
-    #         print("Q")
+                deletor.Deleter.request_delete(item, player_enemies.SquadMan.inventory)
 
     if not pygame.key.get_pressed()[pygame.K_TAB]:
         user_input.key_pressed = False
@@ -515,9 +491,9 @@ def in_level():
     for e in player_enemies.enemy_list:
         _x = c_x * settings.cell_dimension
         _y = c_y * settings.cell_dimension
-        enemy_state = ingame_font.render(str(e.state), False, (255, 0, 0))
-        rect = enemy_state.get_rect(center=(e.x-_x, e.y-_y-16))
-        draw_dest.blit(enemy_state, rect)
+        # enemy_state = ingame_font.render(str(e.state), False, (255, 0, 0))
+        # rect = enemy_state.get_rect(center=(e.x-_x, e.y-_y-16))
+        # draw_dest.blit(enemy_state, rect)
         e.action()
         e.check_death()
 

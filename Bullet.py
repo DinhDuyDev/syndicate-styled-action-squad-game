@@ -19,6 +19,8 @@ class PlayerBullet:
         self.lives = lives
         self.hit_targets = []
         self.create_ray = create_ray
+        self.step = 4
+        self.distance_moved = 0
 
         v = entities.Smoke(x, y)
         v.direction = self.direction + random.randrange(-17, 17)
@@ -30,8 +32,9 @@ class PlayerBullet:
         vec_x = math.cos(math.radians(self.direction+dev))
         vec_y = math.sin(math.radians(self.direction+dev))
         while self._range > 0:
-            self.x += vec_x * 4
-            self.y -= vec_y * 4
+            self.x += vec_x * self.step
+            self.y -= vec_y * self.step
+            self.distance_moved += self.step
             __x, __y = int(self.x/settings.cell_dimension), int(self.y/settings.cell_dimension)
             __fx, __fy = int((self.x+vec_x*4)/settings.cell_dimension), int((self.y-vec_y*4)/settings.cell_dimension)
             hit_wall = map_matrix[__fy][__x] != 0 or map_matrix[__y][__fx] != 0

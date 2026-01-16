@@ -383,8 +383,3 @@ class SoundSource:
 
 all_entities_type = Grenade|Explosion|Smoke|SmokeTrail|DustParticles|Rocket
 all_entities:list[all_entities_type] = []
-
-enemyGroup = pygame.sprite.Group()
-class enemy(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()

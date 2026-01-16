@@ -2,6 +2,7 @@ import pygame
 import math
 import copy
 import ALL_SPRITES
+import colors
 import settings
 import utilityfuncs
 import Sprites
@@ -244,42 +245,39 @@ def gen_mobster_sprites():
     }
 
 def fire_gun(obj, direction):
-    obj.cooldown += 1 * SlowMo.SlowMo.slow_motion_ratio
-    if obj.cooldown > obj.get_weapon().fire_cooldown:
-        base_ref = WEAPONS_REF[obj.current_weapon_name].damage
-        total_damage = base_ref
-        md_dir = direction
-        d = md_dir // 45
-        vec_x = math.cos(math.radians(d * 45)) * 8
-        vec_y = math.sin(math.radians(d * 45)) * 8
-        obj.focused = False
-        wep = obj.get_weapon()
+    base_ref = WEAPONS_REF[obj.current_weapon_name].damage
+    total_damage = base_ref
+    md_dir = direction
+    d = md_dir // 45
+    vec_x = math.cos(math.radians(d * 45)) * 8
+    vec_y = math.sin(math.radians(d * 45)) * 8
+    wep = obj.get_weapon()
 
-        for i in range(wep.pellets):
-            _damage = wep.damage
-            # total_damage += _damage
-            _inaccuracies = wep.inaccuracy
-            _lives = wep.lives
-            _projectile_type = wep.projectile_type
-            _create_ray = wep.create_ray
-            if _projectile_type == "GRENADE":
-                entities.Grenade(obj.x+vec_x, obj.y - vec_y, md_dir, SquadMan.squad_list + enemy_list)
-            elif _projectile_type == "ROCKET":
-                extra_inaccuracy = 0
-                if len(obj.move_path) > 0:
-                    extra_inaccuracy = random.randrange(-32, 32)
-                enemy = SquadMan.squad_list if not isinstance(obj, SquadMan) else enemy_list
-                entities.Rocket(obj.x + vec_x, obj.y - vec_y, md_dir + extra_inaccuracy
-                                , targets=enemy, explosion_affects=SquadMan.squad_list + enemy_list, spawner=obj)
-            else:
-                Bullet.PlayerBullet(obj.xy()[0] + vec_x, obj.xy()[1] - vec_y, md_dir, obj, damage=_damage,
-                                    deviation=_inaccuracies, lives=_lives, create_ray=_create_ray)
-                effects.MuzzleFlash(obj.xy()[0] + vec_x, obj.xy()[1] - vec_y)
+    for i in range(wep.pellets):
+        _damage = wep.damage
+        # total_damage += _damage
+        _inaccuracies = wep.inaccuracy
+        _lives = wep.lives
+        _projectile_type = wep.projectile_type
+        _create_ray = wep.create_ray
+        if _projectile_type == "GRENADE":
+            entities.Grenade(obj.x+vec_x, obj.y - vec_y, md_dir, SquadMan.squad_list + enemy_list)
+        elif _projectile_type == "ROCKET":
+            extra_inaccuracy = 0
+            if len(obj.move_path) > 0:
+                extra_inaccuracy = random.randrange(-32, 32)
+            enemy = SquadMan.squad_list if not isinstance(obj, SquadMan) else enemy_list
+            entities.Rocket(obj.x + vec_x, obj.y - vec_y, md_dir + extra_inaccuracy
+                            , targets=enemy, explosion_affects=SquadMan.squad_list + enemy_list, spawner=obj)
+        else:
+            Bullet.PlayerBullet(obj.xy()[0] + vec_x, obj.xy()[1] - vec_y, md_dir, obj, damage=_damage,
+                                deviation=_inaccuracies, lives=_lives, create_ray=_create_ray)
+            effects.MuzzleFlash(obj.xy()[0] + vec_x, obj.xy()[1] - vec_y)
 
-        entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / (base_ref+1)) * 30)
-        obj.sprite.set_image_index(d)
-        obj.knockback((total_damage / 50) ** 0.8 + random.randint(1, 2) * (bool(total_damage > 0)), direction + 180)
-        obj.cooldown = 0
+    entities.SoundSource(obj.xy()[0], obj.xy()[1], (total_damage / (base_ref+1)) * 30)
+    obj.sprite.set_image_index(d)
+    obj.knockback((total_damage / 50) ** 0.8 + random.randint(1, 2) * (bool(total_damage > 0)), d * 45 + 180)
+    obj.cooldown = 0
 
 def switch_sprite(obj):
     if obj.current_weapon_name == "Pistol":
@@ -305,12 +303,13 @@ class SquadMan:
     MAX_SQUAD = 4
     squad_list:list = []
     squad_footstep_counter = 0
+    r = "RocketLauncher"
     inventory:list[Weapons.InventoryWeapon] = [
         Weapons.InventoryWeapon("None", 0, 9, 9),
-        Weapons.InventoryWeapon(random_weapon(), 6, -1, -1),
-        Weapons.InventoryWeapon(random_weapon(), 6, -1, -1),
-        Weapons.InventoryWeapon(random_weapon(), 6, -1, -1),
-        Weapons.InventoryWeapon(random_weapon(), 6, -1, -1),
+        Weapons.InventoryWeapon(random_weapon(), 1000, -1, -1),
+        Weapons.InventoryWeapon(random_weapon(), 1000, -1, -1),
+        Weapons.InventoryWeapon(random_weapon(), 1000, -1, -1),
+        Weapons.InventoryWeapon(random_weapon(), 1000, -1, -1),
     ]
     @classmethod
     def nums_active(cls):
@@ -408,7 +407,6 @@ class SquadMan:
 
         self.is_dead = False
 
-        #SquadMan.squad_list.append(self)
         SquadMan.squad_list.append(self)
 
     def set_dest(self, x, y, m):
@@ -443,7 +441,9 @@ class SquadMan:
                 if utilityfuncs.line_of_sight(self.x, self.y, enemy.x, enemy.y, MapData.MAP_GEOMETRY):
                     self.front_dir = utilityfuncs.point_direction(self.x, self.y, enemy.x, enemy.y)
                     self.focused = True
-                    fire_gun(self, self.front_dir)
+                    self.cooldown += 1 * SlowMo.SlowMo.slow_motion_ratio
+                    if self.cooldown > self.get_weapon().fire_cooldown:
+                        fire_gun(self, self.front_dir)
                     break
 
 
@@ -485,6 +485,21 @@ class SquadMan:
             y -= vec_y
 
             self.switch_sprites()
+
+            body_sprite = self.sprite.get_current_image()
+            leg_sprite = self.leg_sprite.get_current_image()
+            shadow_sprite = pygame.Surface((16, 16))
+            shadow_sprite.blit(leg_sprite, leg_sprite.get_rect(center=(8, 8)))
+            shadow_sprite.blit(body_sprite, body_sprite.get_rect(center=(8, 8)))
+            shadow_sprite.set_colorkey((0, 0, 0))
+            mask_outline = pygame.mask.from_surface(shadow_sprite)
+            mask_surf = mask_outline.to_surface()
+            mask_surf.set_colorkey((0, 0, 0))
+            px_arr = pygame.PixelArray(mask_surf)
+            px_arr.replace((255, 255, 255), (25, 25, 25))
+            px_arr.close()
+
+            dest.blit(mask_surf, mask_surf.get_rect(center=(x + 1, y + 1)))
             dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)))
             dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
 
@@ -496,13 +511,6 @@ class SquadMan:
                 pygame.draw.rect(dest, (0, 0, 0), (x - 10, y-3, 2, 13))
                 r = self.cooldown / self.get_weapon().fire_cooldown
                 pygame.draw.rect(dest, (255, 255, 255), (x - 10, y+10 - 13 * r, 2, 13 * r))
-
-            # Drawing move path
-            # if len(self.move_path) > 0:
-            #     for i in range(len(self.move_path)):
-            #         offset_x = self.move_path[i][0] * settings.cell_dimension - self.x + settings.cell_dimension/2
-            #         offset_y = self.move_path[i][1] * settings.cell_dimension - self.y + settings.cell_dimension/2
-            #         pygame.draw.circle(dest, (0, 255, 0), (x+offset_x, y+offset_y), 1)
         else:
             side_ways = pygame.transform.rotate(ALL_SPRITES.ASP["SOLDIER_DEAD_BODY"], 270)
             side_ways_rect = side_ways.get_rect(center=(x,y))
@@ -539,15 +547,20 @@ class SquadMan:
     def health_ratio(self):
         return self.hp / self.max_hp
 
+    def ammo_ratio(self):
+        if self.current_item_used.weapon_name == "None":
+            return 0
+        return self.current_item_used.ammo / self.current_item_used.max_ammo
 
     def check_death(self):
-        if self.hp < 0:
+        if self.hp <= 0:
             self.is_dead = True
             self.being_used = False
-            # self.destroy()
             self.deselect_weapon()
+            self.hp = 0
 
     def deselect_weapon(self):
+        SquadMan.inventory.append(self.current_item_used)
         self.current_item_used.being_used = False
         self.current_item_used.used_by_obj = None
         self.current_item_used = SquadMan.inventory[0]
@@ -561,10 +574,21 @@ class SquadMan:
     def switch_sprites(self):
         switch_sprite(self)
 
-    def select_current_item(self, item:Weapons.InventoryWeapon):
+    def get_sprite(self):
+        width = 16
+        surf = pygame.Surface((width, width))
+        my_spr = self.sprite.get_current_image()
+        leg_spr = self.leg_sprite.get_current_image()
+        surf.blit(leg_spr, leg_spr.get_rect(center=(width/2, width/2)))
+        surf.blit(my_spr, my_spr.get_rect(center=(width/2, width/2)))
+        surf.set_colorkey((0,0,0))
+        return surf
+
+    def select_item(self, item:Weapons.InventoryWeapon):
         if item is not self.current_item_used:
             self.cooldown = 0
             # Unuse that item
+            SquadMan.inventory.append(self.current_item_used)
             self.current_item_used.being_used = False
             self.current_item_used.used_by_obj = None
 
@@ -578,11 +602,15 @@ class SquadMan:
 
     def firing(self, direction):
         if self.being_used:
-            if pygame.key.get_pressed()[pygame.K_e] or pygame.mouse.get_pressed()[2]:
-                fire_gun(self, direction)
+            still_has_ammo = self.current_item_used.ammo > 0
+            if (pygame.key.get_pressed()[pygame.K_e] or pygame.mouse.get_pressed()[2]) and still_has_ammo:
+                self.cooldown += 1 * SlowMo.SlowMo.slow_motion_ratio
+                if self.cooldown > self.get_weapon().fire_cooldown:
+                    fire_gun(self, direction)
+                    self.focused = False
+                    self.current_item_used.ammo = max(self.current_item_used.ammo-1, 0)
         else:
             self.auto_aim()
-
 
     def knockback(self, strength, knock_dir):
         self.knock_back_dir = knock_dir
@@ -910,7 +938,9 @@ class EnemyMobster(Enemy):
         self.speed_factor = spd
 
     def firing(self, direction):
-        fire_gun(self, direction)
+        self.cooldown += 1 * SlowMo.SlowMo.slow_motion_ratio
+        if self.cooldown > self.get_weapon().fire_cooldown:
+            fire_gun(self, direction)
 
     def hear_sound(self, snd:entities.SoundSource):
         # chance = random.randint(0, 100)
@@ -973,6 +1003,22 @@ class EnemyMobster(Enemy):
         x += vec_x
         y -= vec_y
         self.switch_sprites()
+
+        # # Shadows
+        body_sprite = self.sprite.get_current_image()
+        leg_sprite = self.leg_sprite.get_current_image()
+        shadow_sprite = pygame.Surface((16, 16))
+        shadow_sprite.blit(leg_sprite, leg_sprite.get_rect(center=(8, 8)))
+        shadow_sprite.blit(body_sprite, body_sprite.get_rect(center=(8, 8)))
+        shadow_sprite.set_colorkey((0, 0, 0))
+        mask_outline = pygame.mask.from_surface(shadow_sprite)
+        mask_surf = mask_outline.to_surface()
+        mask_surf.set_colorkey((0, 0, 0))
+        px_arr = pygame.PixelArray(mask_surf)
+        px_arr.replace((255, 255, 255), (25, 25, 25))
+        px_arr.close()
+
+        dest.blit(mask_surf, mask_surf.get_rect(center=(x + 1, y + 1)))
         dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)), None)
         dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
         pygame.draw.rect(dest, (255, 0, 0), (x-5, y-9, 10, 2))
@@ -1343,7 +1389,9 @@ class EnemySoldier(Enemy):
         self.speed_factor = spd
 
     def firing(self, direction):
-        fire_gun(self, direction)
+        self.cooldown += 1 * SlowMo.SlowMo.slow_motion_ratio
+        if self.cooldown > self.get_weapon().fire_cooldown:
+            fire_gun(self, direction)
 
     def hear_sound(self, snd:entities.SoundSource):
         # chance = random.randint(0, 100)
@@ -1406,7 +1454,22 @@ class EnemySoldier(Enemy):
         x += vec_x
         y -= vec_y
         self.switch_sprites()
-        dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)), None)
+
+        body_sprite = self.sprite.get_current_image()
+        leg_sprite = self.leg_sprite.get_current_image()
+        shadow_sprite = pygame.Surface((16, 16))
+        shadow_sprite.blit(leg_sprite, leg_sprite.get_rect(center=(8,8)))
+        shadow_sprite.blit(body_sprite, body_sprite.get_rect(center=(8,8)))
+        shadow_sprite.set_colorkey((0,0,0))
+        mask_outline = pygame.mask.from_surface(shadow_sprite)
+        mask_surf = mask_outline.to_surface()
+        mask_surf.set_colorkey((0, 0, 0))
+        px_arr = pygame.PixelArray(mask_surf)
+        px_arr.replace((255, 255, 255), (25, 25, 25))
+        px_arr.close()
+
+        dest.blit(mask_surf, mask_surf.get_rect(center=(x+1,y+1)))
+        dest.blit(self.sprite.get_current_image(), self.sprite.get_current_image().get_rect(center=(x, y)))
         dest.blit(self.leg_sprite.get_current_image(), self.leg_sprite.get_current_image().get_rect(center=(x, y)))
         pygame.draw.rect(dest, (255, 0, 0), (x-5, y-9, 10, 2))
         pygame.draw.rect(dest, (0, 255, 0), (x-5, y-9, 10*self.hp/self.max_hp, 2))

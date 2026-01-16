@@ -6,6 +6,7 @@ import settings
 
 ww, wh = settings.WINDOW_WIDTH/settings.zoom, settings.WINDOW_HEIGHT/settings.zoom
 padding = ww/4
+margin = 8
 
 class Weapons:
     def __init__(self, name, fire_cooldown, damage, pellets, inaccuracy, ammo, lives=1, create_ray=False,sound_radius=15,speed_modifier:float=1, projectile_type="BULLET"):
@@ -28,12 +29,14 @@ class InventoryWeapon:
     def __init__(self, weapon_name, ammo, x, y):
         self.weapon_name = weapon_name
         self.max_ammo = WEAPONS_REF[self.weapon_name].ammo
+        # if ammo == -1:
+        #     self.ammo = self.max_ammo
         self.ammo = min(max(0, ammo), self.max_ammo)
         if (x, y) == (-1, -1):
             sprite_width = ALL_SPRITES.ASP[weapon_name].get_rect().width
             sprite_height = ALL_SPRITES.ASP[weapon_name].get_rect().height
-            self.x = random.randrange(int(sprite_width/2)+2, int(ww-padding-sprite_width/2)-2)
-            self.y = random.randrange(int(sprite_height/2)+2, int(wh)-2)
+            self.x = random.randrange(int(sprite_width/2)+margin, int(ww-padding-sprite_width/2)-margin)
+            self.y = random.randrange(int(sprite_height/2)+margin, int(wh)-margin)
         else:
             self.x = x
             self.y = y
@@ -72,10 +75,10 @@ class InventoryWeapon:
 WEAPONS_REF = {
     "None" : Weapons("None", 1, 0, 0, 4, 0, speed_modifier=1.5),
     "Pistol": Weapons("Colt 1911", 15, 15, 1, 4, 30, speed_modifier=1.5),
-    "Revolver": Weapons("Magnum", 60, 100, 1, 1, 6,lives=2, create_ray=True, speed_modifier=1.5),
+    "Revolver": Weapons("Magnum", 60, 50, 1, 1, 6,lives=2, create_ray=True, speed_modifier=1.5),
     "Shotgun": Weapons("RMT 970",  60, 11, 15, 8, 8, speed_modifier=1),
     "Thompson": Weapons("Thompson",  4, 10, 1, 6, 100, speed_modifier=0.8), # damage 8, cooldown 4, pellets 1
-    "Bar": Weapons("Bar", 12, 30, 1, 1, 10, lives=2, create_ray=True, speed_modifier=0.6),
+    "Bar": Weapons("Bar", 12, 30, 1, 1, 15, lives=2, create_ray=True, speed_modifier=0.6),
     "GrenadeLauncher": Weapons("Grenade Launcher", 70, 0, 5, 4, 7, speed_modifier=0.6, projectile_type="GRENADE"),
     "RocketLauncher" : Weapons("Rocket Launcher", 60, 35, 3, 4, 1, projectile_type="ROCKET", speed_modifier=0.5),
     # "GasLauncher"

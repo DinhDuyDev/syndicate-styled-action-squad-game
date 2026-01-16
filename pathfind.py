@@ -1,6 +1,5 @@
 import math
 import tiles
-import heapq
 
 class Node:
     def __init__(self, x, y, g, h):
