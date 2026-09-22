@@ -1,5 +1,18 @@
-# BiscuitSyndicate_R
-The last Biscuit Syndicate repository had some interesting things happening with its branches, and I couldn't figure them out.
-So I figured that I just start new. I have been coding for longer than this now, but I have never been able to make myself more skilled.
-Some things just never change...
-I hope I don't give up on this project.
+# SYNDICATE-STYLED-ACTION-SQUAD-GAME
+
+# What it is
+A working framework for a Syndicated styled action squad game. 
+Follows 4 "agents" that can move throughout the game world.
+Written solely in PyGame and Python.
+
+# Features
+1. Fully functional A* pathfinding.
+2. Automatic enemy detection and firing.
+3. A variety of different weapons.
+4. Complex enemy AI for different enemy classes.
+5. Fully functional level editor with load / save functionality.
+6. Custom sprite editor (because I had no Aseprite)
+
+# In need
+1. An actual story.
+2. Game levels.
